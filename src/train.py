@@ -11,6 +11,7 @@ from model import ClassificationCNN
 def train(args):
     # Image preprocessing, normalization for the pretrained resnet
     transform = transforms.Compose([
+        transforms.Resize((299, 299)),
         transforms.ToTensor(),
         transforms.Normalize((0.485, 0.456, 0.406),
                              (0.229, 0.224, 0.225))
@@ -61,16 +62,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str, default='models/', help='path for saving trained models')
     parser.add_argument(
-        '--original_image_dir', type=str, default='../dataset/images_tiny/original', help='directory for original images'
+        '--original_image_dir', type=str, default='/home/jober/Documents/ADL4CV/original_c40/original_sequences/youtube/c40/videos/subset/images', help='directory for original images'
     )
     parser.add_argument(
-        '--tampered_image_dir', type=str, default='../dataset/images_tiny/tampered', help='directory for tamprerd images'
+        '--tampered_image_dir', type=str, default='/home/jober/Documents/ADL4CV/NeuralTextures_c40/manipulated_sequences/NeuralTextures/c40/videos/subset/images', help='directory for tamprerd images'
     )
     parser.add_argument('--log_step', type=int, default=10, help='step size for printing log info')
     parser.add_argument('--save_step', type=int, default=1000, help='step size for saving trained models')
 
     parser.add_argument('--num_epochs', type=int, default=5)
-    parser.add_argument('--batch_size', type=int, default=128)
+    parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--learning_rate', type=float, default=0.001)
     args = parser.parse_args()
