@@ -18,7 +18,8 @@ def train(args):
 
     # Build data loader
     data_loader = get_loader(
-        args.image_dir, transform, args.batch_size, shuffle=True, num_workers=args.num_workers
+        args.original_image_dir, args.tampered_image_dir, transform, args.batch_size,
+        shuffle=True, num_workers=args.num_workers
     )
 
     # Device configuration
@@ -59,7 +60,12 @@ def train(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str, default='models/', help='path for saving trained models')
-    parser.add_argument('--image_dir', type=str, default='../dataset/images_tiny', help='directory for input images')
+    parser.add_argument(
+        '--original_image_dir', type=str, default='../dataset/images_tiny/original', help='directory for original images'
+    )
+    parser.add_argument(
+        '--tampered_image_dir', type=str, default='../dataset/images_tiny/tampered', help='directory for tamprerd images'
+    )
     parser.add_argument('--log_step', type=int, default=10, help='step size for printing log info')
     parser.add_argument('--save_step', type=int, default=1000, help='step size for saving trained models')
 
