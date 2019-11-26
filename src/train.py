@@ -23,12 +23,13 @@ def train(args):
 
     # Device configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('training on', device)
 
     # Build the models
     model = ClassificationCNN().to(device)
 
     # Loss and optimizer
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Train the models
