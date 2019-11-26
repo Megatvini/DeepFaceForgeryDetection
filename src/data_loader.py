@@ -10,7 +10,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class ImagesDataset(data.Dataset):
     def __init__(self, images_dir, transform=None):
-        self.images = []
+        self.image_paths = []
         self.transform = transform
         self._read_images(images_dir)
 
@@ -21,22 +21,20 @@ class ImagesDataset(data.Dataset):
     def _read_class_images(self, class_name, images_dir):
         class_images_dir = os.path.join(images_dir, class_name)
         for file_path in os.listdir(class_images_dir):
-            img = Image.open(os.path.join(class_images_dir, file_path))
-            self.images.append({
+            self.image_paths.append({
                 'class': class_name,
-                'img': self.transform(img)
+                'img_path': os.path.join(class_images_dir, file_path)
             })
 
     def __getitem__(self, index):
-        """Returns one data pair (image and caption)."""
-        img = self.images[index]
+        img = self.image_paths[index]
 
         target = torch.tensor(0.0) if img['class'] == 'original' else torch.tensor(1.0)
-        image = img['img']
+        image = self.transform(Image.open(img['img_path']))
         return image, target
 
     def __len__(self):
-        return len(self.images)
+        return len(self.image_paths)
 
 
 def get_loader(images_dir, transform, batch_size, shuffle, num_workers):
