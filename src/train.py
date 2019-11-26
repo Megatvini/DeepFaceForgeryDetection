@@ -39,6 +39,7 @@ def train(args):
 
             # Set mini-batch dataset
             images = images.to(device)
+            targets = targets.to(device)
 
             # Forward, backward and optimize
             outputs = model(images)
