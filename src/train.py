@@ -6,6 +6,7 @@ from torchvision import transforms
 
 from data_loader import get_loader
 from model import ClassificationCNN
+from datetime import datetime
 
 
 def train(args):
@@ -34,11 +35,11 @@ def train(args):
     criterion = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
+    now = datetime.now()
     # Train the models
     total_step = len(data_loader)
     for epoch in range(args.num_epochs):
         for i, (images, targets) in enumerate(data_loader):
-
             # Set mini-batch dataset
             images = images.to(device)
             targets = targets.to(device)
@@ -52,20 +53,21 @@ def train(args):
 
             # Print log info
             if i % args.log_step == 0:
-                log_info = 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(
-                    epoch, args.num_epochs, i, total_step, loss.item()
+                log_info = 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Iteration time: {}'.format(
+                    epoch, args.num_epochs, i, total_step, loss.item(), datetime.now() - now
                 )
                 print(log_info)
+            now = datetime.now()
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str, default='models/', help='path for saving trained models')
     parser.add_argument(
-        '--original_image_dir', type=str, default='/home/jober/Documents/ADL4CV/original_c40/original_sequences/youtube/c40/videos/subset/images', help='directory for original images'
+        '--original_image_dir', type=str, default='../dataset/images_tiny/original', help='directory for original images'
     )
     parser.add_argument(
-        '--tampered_image_dir', type=str, default='/home/jober/Documents/ADL4CV/NeuralTextures_c40/manipulated_sequences/NeuralTextures/c40/videos/subset/images', help='directory for tamprerd images'
+        '--tampered_image_dir', type=str, default='../dataset/images_tiny/tampered', help='directory for tamprerd images'
     )
     parser.add_argument('--log_step', type=int, default=10, help='step size for printing log info')
     parser.add_argument('--save_step', type=int, default=1000, help='step size for saving trained models')
