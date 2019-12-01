@@ -3,7 +3,7 @@ import os
 import torch
 import torch.utils.data as data
 from PIL import Image, ImageFile
-
+from torch.utils.data import random_split
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -31,15 +31,27 @@ class ImagesDataset(data.Dataset):
         img = self.image_paths[index]
 
         target = torch.tensor(0.0) if img['class'] == 'original' else torch.tensor(1.0)
-        image = self.transform(Image.open(img['img_path']))
+        image = Image.open(img['img_path'])
+        if self.transform is not None:
+            image = self.transform(image)
         return image, target
 
     def __len__(self):
         return len(self.image_paths)
 
 
-def get_loader(original_image_dir, tampered_image_dir, transform, batch_size, shuffle, num_workers):
-    dataset = ImagesDataset(original_image_dir, tampered_image_dir, transform)
+def read_dataset(original_image_dir, tampered_image_dir, transform=None, split=0.9):
+    full_dataset = ImagesDataset(original_image_dir, tampered_image_dir, transform)
+
+    full_size = len(full_dataset)
+    train_size = int(full_size * split)
+    val_size = full_size - train_size
+
+    train_dataset, test_dataset = random_split(full_dataset, (train_size, val_size))
+    return train_dataset, test_dataset
+
+
+def get_loader(dataset, batch_size, shuffle, num_workers):
     data_loader = torch.utils.data.DataLoader(dataset=dataset,
                                               batch_size=batch_size,
                                               shuffle=shuffle,
