@@ -1,31 +1,32 @@
 import os
 
 import torch
-import torch.utils.data as data
+from torch.utils.data import Dataset
 from PIL import Image, ImageFile
-from torch.utils.data import random_split
+import random
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
-class ImagesDataset(data.Dataset):
-    def __init__(self, original_image_dir, tampered_image_dir, transform=None):
+class ImagesDataset(Dataset):
+    def __init__(self, original_video_dirs, tampered_video_dirs, transform=None):
         self.image_paths = []
         self.transform = transform
-        self._read_images(original_image_dir, 'original')
-        self._read_images(tampered_image_dir, 'tampered')
+        self._read_images(original_video_dirs, 'original')
+        self._read_images(tampered_video_dirs, 'tampered')
 
-    def _read_images(self, images_dir, class_name):
-        self._read_class_images(class_name, images_dir)
+    def _read_images(self, video_dirs, class_name):
+        for video_dir in video_dirs:
+            self._read_class_images(class_name, video_dir)
 
-    def _read_class_images(self, class_name, class_images_dir):
-        for video_name in os.listdir(class_images_dir):
-            for image_name in os.listdir(os.path.join(class_images_dir, video_name)):
-                self.image_paths.append({
-                    'video_name': video_name,
-                    'class': class_name,
-                    'img_path': os.path.join(class_images_dir, video_name, image_name)
-                })
+    def _read_class_images(self, class_name, video_dir):
+        video_id = video_dir.split('/')[-1]
+        for image_name in os.listdir(video_dir):
+            self.image_paths.append({
+                'video_id': video_id,
+                'class': class_name,
+                'img_path': os.path.join(video_dir, image_name)
+            })
 
     def __getitem__(self, index):
         img = self.image_paths[index]
@@ -40,15 +41,27 @@ class ImagesDataset(data.Dataset):
         return len(self.image_paths)
 
 
-def read_dataset(original_image_dir, tampered_image_dir, transform=None, split=0.9):
-    full_dataset = ImagesDataset(original_image_dir, tampered_image_dir, transform)
+def listdir_with_full_paths(dir_path):
+    return [os.path.join(dir_path, x) for x in os.listdir(dir_path)]
 
-    full_size = len(full_dataset)
-    train_size = int(full_size * split)
-    val_size = full_size - train_size
 
-    train_dataset, test_dataset = random_split(full_dataset, (train_size, val_size))
-    return train_dataset, test_dataset
+def random_split(data, split=0.9):
+    size = int(len(data)*split)
+    random.shuffle(data)
+    return data[:size], data[size:]
+
+
+def read_dataset(original_data_dir, tampered_data_dir, transform=None, split=0.9):
+    original_video_dir_paths = listdir_with_full_paths(original_data_dir)
+    tampered_video_dir_paths = listdir_with_full_paths(tampered_data_dir)
+
+    # need to make sure tampered videos in validation don't contain any videos from training
+    train_videos_original, val_videos_original = random_split(original_video_dir_paths, split)
+    train_videos_tampered, val_videos_tampered = random_split(tampered_video_dir_paths, split)
+
+    train_dataset = ImagesDataset(train_videos_original, train_videos_tampered, transform)
+    val_dataset = ImagesDataset(val_videos_original, val_videos_tampered, transform)
+    return train_dataset, val_dataset
 
 
 def get_loader(dataset, batch_size, shuffle, num_workers):
