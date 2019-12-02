@@ -16,7 +16,7 @@ def extract_frames(data_path, output_path, file_prefix):
             success, image = reader.read()
             if not success:
                 break
-            cv2.imwrite(join(output_path, '{}{:04d}.png'.format(file_prefix, frame_num)), image)
+            cv2.imwrite(join(output_path, '{}{:04d}.jpg'.format(file_prefix, frame_num)), image)
             frame_num += 1
             p_bar.update(1)
         reader.release()
