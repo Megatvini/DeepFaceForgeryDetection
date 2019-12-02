@@ -60,17 +60,20 @@ def train(args):
             loss.backward()
             optimizer.step()
 
+            iteration_time = datetime.now() - now
+
             # Print log info
             if i % args.log_step == 0:
                 log_info = 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Iteration time: {}'.format(
-                    epoch, args.num_epochs, i, total_step, loss.item(), datetime.now() - now
+                    epoch, args.num_epochs, i, total_step, loss.item(), iteration_time
                 )
                 print(log_info)
-            now = datetime.now()
 
             if i % args.val_step == 0:
                 # validation
                 print_validation_info(args, criterion, device, model, val_loader)
+
+            now = datetime.now()
 
 
 def print_validation_info(args, criterion, device, model, val_loader):
