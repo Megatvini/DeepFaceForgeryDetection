@@ -19,7 +19,8 @@ def train(args):
     ])
 
     train_dataset, val_dataset = read_dataset(
-        args.original_image_dir, args.tampered_image_dir, transform, split=0.8
+        args.original_image_dir, args.tampered_image_dir, split=0.99,
+        transform=transform, max_images_per_video=args.max_images_per_video
     )
 
     # Build data loader
@@ -33,6 +34,7 @@ def train(args):
     # Device configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('training on', device)
+    print('train data size: {}, validation data size: {}'.format(len(train_dataset), len(val_dataset)))
 
     # Build the models
     model = ClassificationCNN().to(device)
@@ -66,41 +68,55 @@ def train(args):
                 print(log_info)
             now = datetime.now()
 
-        # validation
-        model.eval()
-        with torch.no_grad():
-            loss_values = []
-            correct_predictions = 0
-            total_predictions = 0
+            if i % args.val_step == 0:
+                # validation
+                print_validation_info(args, criterion, device, model, val_loader)
 
-            for images, targets in val_loader:
-                images = images.to(device)
-                targets = targets.to(device)
 
-                outputs = model(images)
-                loss = criterion(outputs, targets)
-                loss_values.append(loss)
+def print_validation_info(args, criterion, device, model, val_loader):
+    model.eval()
+    with torch.no_grad():
+        loss_values = []
+        correct_predictions = 0
+        total_predictions = 0
 
-                predictions = outputs.round()
-                cur_correct = int(targets.eq(predictions).sum().cpu())
-                correct_predictions += cur_correct
-                total_predictions += len(images)
+        for images, targets in val_loader:
+            images = images.to(device)
+            targets = targets.to(device)
 
-            val_loss = sum(loss_values) / len(loss_values)
-            val_accuracy = correct_predictions / total_predictions
-            print('Validation - Loss / Acc: {:.3f}/{:.3f}'.format(epoch, args.num_epochs, val_loss, val_accuracy))
+            outputs = model(images)
+            loss = criterion(outputs, targets)
+            loss_values.append(loss)
+
+            predictions = outputs.round()
+            cur_correct = int(targets.eq(predictions).sum().cpu())
+            correct_predictions += cur_correct
+            total_predictions += len(images)
+            if args.debug:
+                print(outputs)
+                print(predictions)
+                print(targets)
+
+        val_loss = sum(loss_values) / len(loss_values)
+        val_accuracy = correct_predictions / total_predictions
+        print('Validation - Loss: {:.3f}, Acc: {:.3f}'.format(val_loss, val_accuracy))
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str, default='models/', help='path for saving trained models')
     parser.add_argument(
-        '--original_image_dir', type=str, default='../dataset/images_tiny/original', help='directory for original images'
+        '--original_image_dir', type=str, default='../dataset/images_tiny/original',
+        help='directory for original images'
     )
     parser.add_argument(
-        '--tampered_image_dir', type=str, default='../dataset/images_tiny/tampered', help='directory for tamprerd images'
+        '--tampered_image_dir', type=str, default='../dataset/images_tiny/tampered',
+        help='directory for tamprerd images'
     )
-    parser.add_argument('--log_step', type=int, default=10, help='step size for printing log info')
+    parser.add_argument('--log_step', type=int, default=10, help='step size for printing training log info')
+    parser.add_argument('--val_step', type=int, default=50, help='step size for printing validation log info')
+    parser.add_argument('--max_images_per_video', type=int, default=50, help='maximum images to use from one video')
+    parser.add_argument('--debug', type=bool, default=False, help='include additional debugging ifo')
     parser.add_argument('--save_step', type=int, default=1000, help='step size for saving trained models')
 
     parser.add_argument('--num_epochs', type=int, default=5)

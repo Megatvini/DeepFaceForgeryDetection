@@ -9,7 +9,8 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class ImagesDataset(Dataset):
-    def __init__(self, original_video_dirs, tampered_video_dirs, transform=None):
+    def __init__(self, original_video_dirs, tampered_video_dirs, max_images_per_video, transform=None):
+        self.max_images_per_video = max_images_per_video
         self.image_paths = []
         self.transform = transform
         self._read_images(original_video_dirs, 'original')
@@ -20,8 +21,8 @@ class ImagesDataset(Dataset):
             self._read_class_images(class_name, video_dir)
 
     def _read_class_images(self, class_name, video_dir):
-        video_id = video_dir.split('/')[-1]
-        for image_name in os.listdir(video_dir):
+        video_id = get_file_name(video_dir)
+        for image_name in os.listdir(video_dir)[:self.max_images_per_video]:
             self.image_paths.append({
                 'video_id': video_id,
                 'class': class_name,
@@ -30,7 +31,6 @@ class ImagesDataset(Dataset):
 
     def __getitem__(self, index):
         img = self.image_paths[index]
-
         target = torch.tensor(0.0) if img['class'] == 'original' else torch.tensor(1.0)
         image = Image.open(img['img_path'])
         if self.transform is not None:
@@ -45,22 +45,37 @@ def listdir_with_full_paths(dir_path):
     return [os.path.join(dir_path, x) for x in os.listdir(dir_path)]
 
 
-def random_split(data, split=0.9):
+def random_split(data, split):
     size = int(len(data)*split)
     random.shuffle(data)
     return data[:size], data[size:]
 
 
-def read_dataset(original_data_dir, tampered_data_dir, transform=None, split=0.9):
+def get_file_name(file_path):
+    return file_path.split('/')[-1]
+
+
+def read_dataset(original_data_dir, tampered_data_dir, split, transform=None, max_images_per_video=40):
     original_video_dir_paths = listdir_with_full_paths(original_data_dir)
     tampered_video_dir_paths = listdir_with_full_paths(tampered_data_dir)
 
     # need to make sure tampered videos in validation don't contain any videos from training
     train_videos_original, val_videos_original = random_split(original_video_dir_paths, split)
-    train_videos_tampered, val_videos_tampered = random_split(tampered_video_dir_paths, split)
 
-    train_dataset = ImagesDataset(train_videos_original, train_videos_tampered, transform)
-    val_dataset = ImagesDataset(val_videos_original, val_videos_tampered, transform)
+    train_video_names = [get_file_name(x) for x in train_videos_original]
+
+    # all the tampered videos (pairs) that have not been seen in training
+    val_videos_tampered = [x for x in tampered_video_dir_paths if get_file_name(x) not in train_video_names]
+
+    # all the tampered videos (pairs) not included in validation
+    train_videos_tampered = [x for x in tampered_video_dir_paths if x not in val_videos_tampered]
+
+    val_original_size = len(val_videos_original)
+    train_videos_tampered += val_videos_tampered[val_original_size:]
+    val_videos_tampered = val_videos_tampered[:val_original_size]
+
+    train_dataset = ImagesDataset(train_videos_original, train_videos_tampered, max_images_per_video, transform)
+    val_dataset = ImagesDataset(val_videos_original, val_videos_tampered, max_images_per_video, transform)
     return train_dataset, val_dataset
 
 
