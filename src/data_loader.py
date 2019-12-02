@@ -59,20 +59,8 @@ def read_dataset(original_data_dir, tampered_data_dir, split, transform=None, ma
     original_video_dir_paths = listdir_with_full_paths(original_data_dir)
     tampered_video_dir_paths = listdir_with_full_paths(tampered_data_dir)
 
-    # need to make sure tampered videos in validation don't contain any videos from training
     train_videos_original, val_videos_original = random_split(original_video_dir_paths, split)
-
-    train_video_names = [get_file_name(x) for x in train_videos_original]
-
-    # all the tampered videos (pairs) that have not been seen in training
-    val_videos_tampered = [x for x in tampered_video_dir_paths if get_file_name(x) not in train_video_names]
-
-    # all the tampered videos (pairs) not included in validation
-    train_videos_tampered = [x for x in tampered_video_dir_paths if x not in val_videos_tampered]
-
-    val_original_size = len(val_videos_original)
-    train_videos_tampered += val_videos_tampered[val_original_size:]
-    val_videos_tampered = val_videos_tampered[:val_original_size]
+    train_videos_tampered, val_videos_tampered = random_split(tampered_video_dir_paths, split)
 
     train_dataset = ImagesDataset(train_videos_original, train_videos_tampered, max_images_per_video, transform)
     val_dataset = ImagesDataset(val_videos_original, val_videos_tampered, max_images_per_video, transform)
