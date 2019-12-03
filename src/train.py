@@ -1,15 +1,20 @@
 import argparse
 from datetime import datetime
-
+import torchvision
 import torch
 import torch.nn as nn
 from torchvision import transforms
+from torch.utils.tensorboard import SummaryWriter
+
 
 from data_loader import get_loader, read_dataset
 from model import ClassificationCNN
 
 
 def train(args):
+    # show tensorboard graphs with following command: tensorboard --logdir =src/runs
+    writer = SummaryWriter()
+
     # Image preprocessing, normalization for the pretrained resnet
     transform = transforms.Compose([
         transforms.Resize((299, 299)),
@@ -19,7 +24,7 @@ def train(args):
     ])
 
     train_dataset, val_dataset = read_dataset(
-        args.original_image_dir, args.tampered_image_dir, split=0.80,
+        args.original_image_dir, args.tampered_image_dir, split=0.90,
         transform=transform, max_images_per_video=args.max_images_per_video
     )
 
@@ -59,6 +64,10 @@ def train(args):
             model.zero_grad()
             loss.backward()
             optimizer.step()
+            grid = torchvision.utils.make_grid(images)
+            writer.add_image('images', grid, 0)
+            writer.add_graph(model, images)
+            writer.close()
 
             batch_accuracy = float(outputs.round().eq(targets).sum()) / len(targets)
 
@@ -70,15 +79,21 @@ def train(args):
                 )
                 print(log_info)
 
-            if i % args.val_step == 0:
-                # validation
-                print_validation_info(args, criterion, device, model, val_loader)
-
             now = datetime.now()
 
+          #  if i % args.val_step == 0:
+                # validation
+        val_loss, val_accuracy = print_validation_info(args, criterion, device, model, val_loader, 'Validation', epoch, writer)
+        writer.add_scalar('Loss/val', val_loss, epoch)
+        writer.add_scalar('Acc/val', val_accuracy, epoch)
+        train_loss, train_accuracy = print_validation_info(args, criterion, device, model, train_loader, 'Training', epoch, writer)
+        writer.add_scalar('Loss/train', train_loss, epoch)
+        writer.add_scalar('Acc/train', train_accuracy, epoch)
 
-def print_validation_info(args, criterion, device, model, val_loader):
-    model.eval()
+
+
+def print_validation_info(args, criterion, device, model, val_loader, mode, epoch, writer):
+    #model.eval()
     with torch.no_grad():
         loss_values = []
         correct_predictions = 0
@@ -102,18 +117,19 @@ def print_validation_info(args, criterion, device, model, val_loader):
 
         val_loss = sum(loss_values) / len(loss_values)
         val_accuracy = correct_predictions / total_predictions
-        print('Validation - Loss: {:.3f}, Acc: {:.3f}'.format(val_loss, val_accuracy))
+        print(mode, ' - Loss: {:.3f}, Acc: {:.3f}'.format(val_loss, val_accuracy))
+        return val_loss, val_accuracy
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str, default='models/', help='path for saving trained models')
     parser.add_argument(
-        '--original_image_dir', type=str, default='../dataset/images_tiny/original',
+        '--original_image_dir', type=str, default='/home/jober/Documents/ADL4CV/original_c40/original_sequences/youtube/c40/videos/subset/images',
         help='directory for original images'
     )
     parser.add_argument(
-        '--tampered_image_dir', type=str, default='../dataset/images_tiny/tampered',
+        '--tampered_image_dir', type=str, default='/home/jober/Documents/ADL4CV/NeuralTextures_c40/manipulated_sequences/NeuralTextures/c40/videos/subset/images',
         help='directory for tamprerd images'
     )
     parser.add_argument('--log_step', type=int, default=10, help='step size for printing training log info')
@@ -122,11 +138,11 @@ def main():
     parser.add_argument('--debug', type=bool, default=False, help='include additional debugging ifo')
     parser.add_argument('--save_step', type=int, default=1000, help='step size for saving trained models')
 
-    parser.add_argument('--num_epochs', type=int, default=5)
-    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--num_epochs', type=int, default=15)
+    parser.add_argument('--regularization', type=float, default=0.001)
+    parser.add_argument('--batch_size', type=int, default=22)
     parser.add_argument('--num_workers', type=int, default=2)
-    parser.add_argument('--learning_rate', type=float, default=0.001)
-    parser.add_argument('--regularization', type=float, default=0.01)
+    parser.add_argument('--learning_rate', type=float, default=0.00001)
     args = parser.parse_args()
     train(args)
 
