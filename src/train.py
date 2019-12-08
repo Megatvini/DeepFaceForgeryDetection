@@ -51,7 +51,6 @@ def train(args):
     training_images_sample, _ = next(iter(train_loader))
     grid = torchvision.utils.make_grid(training_images_sample)
     writer.add_image('sample_training_images', grid, 0)
-    writer.add_graph(model, training_images_sample)
 
     now = datetime.now()
     # Train the models
@@ -98,6 +97,7 @@ def train(args):
 
 
 def print_validation_info(args, criterion, device, model, val_loader, writer, step, final=False):
+    now = datetime.now()
     model.eval()
     with torch.no_grad():
         loss_values = []
@@ -122,7 +122,7 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, st
 
         val_loss = sum(loss_values) / len(loss_values)
         val_accuracy = correct_predictions / total_predictions
-        print('Validation - Loss: {:.3f}, Acc: {:.3f}'.format(val_loss, val_accuracy))
+        print('Validation - Loss: {:.3f}, Acc: {:.3f}, Time: {}'.format(val_loss, val_accuracy, datetime.now() - now))
         writer.add_scalar('validation loss', val_loss, step)
         writer.add_scalar('validation acc', val_accuracy, step)
 
