@@ -1,11 +1,11 @@
 import argparse
 from datetime import datetime
-import torchvision
+
 import torch
 import torch.nn as nn
-from torchvision import transforms
+import torchvision
 from torch.utils.tensorboard import SummaryWriter
-
+from torchvision import transforms
 
 from data_loader import get_loader, read_dataset
 from model import ClassificationCNN
@@ -24,7 +24,7 @@ def train(args):
     ])
 
     train_dataset, val_dataset = read_dataset(
-        args.original_image_dir, args.tampered_image_dir, split=0.90,
+        args.original_image_dir, args.tampered_image_dir, split=0.80,
         transform=transform, max_images_per_video=args.max_images_per_video
     )
 
@@ -48,6 +48,11 @@ def train(args):
     criterion = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.regularization)
 
+    training_images_sample, _ = next(iter(train_loader))
+    grid = torchvision.utils.make_grid(training_images_sample)
+    writer.add_image('sample_training_images', grid, 0)
+    writer.add_graph(model, training_images_sample)
+
     now = datetime.now()
     # Train the models
     total_step = len(train_loader)
@@ -64,36 +69,36 @@ def train(args):
             model.zero_grad()
             loss.backward()
             optimizer.step()
-            grid = torchvision.utils.make_grid(images)
-            writer.add_image('images', grid, 0)
-            writer.add_graph(model, images)
-            writer.close()
 
             batch_accuracy = float(outputs.round().eq(targets).sum()) / len(targets)
 
             iteration_time = datetime.now() - now
             # Print log info
+            step = epoch * len(train_loader) + i
+
             if i % args.log_step == 0:
                 log_info = 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}, Iteration time: {}'.format(
                     epoch, args.num_epochs, i, total_step, loss.item(), batch_accuracy, iteration_time
                 )
                 print(log_info)
 
+                # ...log the running loss
+                writer.add_scalar('training loss', loss, step)
+                writer.add_scalar('training acc', batch_accuracy, step)
+
+            if i % args.val_step == 0:
+                # validation
+                print_validation_info(args, criterion, device, model, val_loader, writer, step)
+
             now = datetime.now()
 
-          #  if i % args.val_step == 0:
-                # validation
-        val_loss, val_accuracy = print_validation_info(args, criterion, device, model, val_loader, 'Validation', epoch, writer)
-        writer.add_scalar('Loss/val', val_loss, epoch)
-        writer.add_scalar('Acc/val', val_accuracy, epoch)
-        train_loss, train_accuracy = print_validation_info(args, criterion, device, model, train_loader, 'Training', epoch, writer)
-        writer.add_scalar('Loss/train', train_loss, epoch)
-        writer.add_scalar('Acc/train', train_accuracy, epoch)
+    print_validation_info(args, criterion, device, model, val_loader, writer, total_step, final=True)
+    writer.add_text('model', str(model))
+    writer.close()
 
 
-
-def print_validation_info(args, criterion, device, model, val_loader, mode, epoch, writer):
-    #model.eval()
+def print_validation_info(args, criterion, device, model, val_loader, writer, step, final=False):
+    model.eval()
     with torch.no_grad():
         loss_values = []
         correct_predictions = 0
@@ -105,7 +110,7 @@ def print_validation_info(args, criterion, device, model, val_loader, mode, epoc
 
             outputs = model(images)
             loss = criterion(outputs, targets)
-            loss_values.append(loss)
+            loss_values.append(loss.item())
 
             predictions = outputs.round()
             correct_predictions += int(targets.eq(predictions).sum().cpu())
@@ -117,19 +122,26 @@ def print_validation_info(args, criterion, device, model, val_loader, mode, epoc
 
         val_loss = sum(loss_values) / len(loss_values)
         val_accuracy = correct_predictions / total_predictions
-        print(mode, ' - Loss: {:.3f}, Acc: {:.3f}'.format(val_loss, val_accuracy))
-        return val_loss, val_accuracy
+        print('Validation - Loss: {:.3f}, Acc: {:.3f}'.format(val_loss, val_accuracy))
+        writer.add_scalar('validation loss', val_loss, step)
+        writer.add_scalar('validation acc', val_accuracy, step)
+
+        if final:
+            writer.add_hparams(args.__dict__, {
+                'final_val_loss': val_loss,
+                'final_val_accuracy': val_accuracy,
+            })
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str, default='models/', help='path for saving trained models')
     parser.add_argument(
-        '--original_image_dir', type=str, default='/home/jober/Documents/ADL4CV/original_c40/original_sequences/youtube/c40/videos/subset/images',
+        '--original_image_dir', type=str, default='../dataset/images_tiny/original',
         help='directory for original images'
     )
     parser.add_argument(
-        '--tampered_image_dir', type=str, default='/home/jober/Documents/ADL4CV/NeuralTextures_c40/manipulated_sequences/NeuralTextures/c40/videos/subset/images',
+        '--tampered_image_dir', type=str, default='../dataset/images_tiny/tampered',
         help='directory for tamprerd images'
     )
     parser.add_argument('--log_step', type=int, default=10, help='step size for printing training log info')

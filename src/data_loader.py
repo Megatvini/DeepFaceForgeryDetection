@@ -1,9 +1,9 @@
 import os
+import random
 
 import torch
-from torch.utils.data import Dataset
 from PIL import Image, ImageFile
-import random
+from torch.utils.data import Dataset
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -56,8 +56,8 @@ def get_file_name(file_path):
 
 
 def read_dataset(original_data_dir, tampered_data_dir, split, transform=None, max_images_per_video=40):
-    original_video_dir_paths = listdir_with_full_paths(original_data_dir)[:30]
-    tampered_video_dir_paths = listdir_with_full_paths(tampered_data_dir)[:30]
+    original_video_dir_paths = listdir_with_full_paths(original_data_dir)
+    tampered_video_dir_paths = listdir_with_full_paths(tampered_data_dir)
 
     train_videos_original, val_videos_original = random_split(original_video_dir_paths, split)
     train_videos_tampered, val_videos_tampered = random_split(tampered_video_dir_paths, split)
