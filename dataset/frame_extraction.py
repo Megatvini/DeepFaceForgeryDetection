@@ -9,17 +9,14 @@ from tqdm import tqdm
 def extract_frames(data_path, output_path, file_prefix):
     os.makedirs(output_path, exist_ok=True)
     reader = cv2.VideoCapture(data_path)
-    length = int(reader.get(cv2.CAP_PROP_FRAME_COUNT))
-    with tqdm(total=length) as p_bar:
-        frame_num = 0
-        while reader.isOpened():
-            success, image = reader.read()
-            if not success:
-                break
-            cv2.imwrite(join(output_path, '{}{:04d}.jpg'.format(file_prefix, frame_num)), image)
-            frame_num += 1
-            p_bar.update(1)
-        reader.release()
+    frame_num = 0
+    while reader.isOpened():
+        success, image = reader.read()
+        if not success:
+            break
+        cv2.imwrite(join(output_path, '{}{:04d}.jpg'.format(file_prefix, frame_num)), image)
+        frame_num += 1
+    reader.release()
 
 
 def extract_images(videos_path, out_path, num_videos):
@@ -28,11 +25,10 @@ def extract_images(videos_path, out_path, num_videos):
     video_files = os.listdir(videos_path)
     print('total videos found - {}, extracting from - {}'.format(len(video_files), min(len(video_files), num_videos)))
 
-    for index, video_file in enumerate(video_files[:num_videos]):
+    for index, video_file in tqdm(enumerate(video_files[:num_videos])):
         video_file_name = video_file.split('.')[0]
         video_out_path = os.path.join(out_path, video_file_name)
         video_path = os.path.join(videos_path, video_file)
-        print('extracting for video# {}'.format(index + 1))
         file_prefix = '{}_'.format(video_file_name)
         extract_frames(video_path, video_out_path, file_prefix=file_prefix)
 
