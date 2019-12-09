@@ -17,7 +17,7 @@ def train(args):
 
     # Image preprocessing, normalization for the pretrained resnet
     transform = transforms.Compose([
-        transforms.Resize((299, 299)),
+        transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize((0.485, 0.456, 0.406),
                              (0.229, 0.224, 0.225))
@@ -56,8 +56,8 @@ def train(args):
     # Train the models
     total_step = len(train_loader)
     for epoch in range(args.num_epochs):
-        model.train()
         for i, (images, targets) in enumerate(train_loader):
+            model.train()
             # Set mini-batch dataset
             images = images.to(device)
             targets = targets.to(device)
@@ -73,19 +73,19 @@ def train(args):
 
             iteration_time = datetime.now() - now
             # Print log info
-            step = epoch * len(train_loader) + i
+            step = epoch * len(train_loader) + i + 1
 
-            if i % args.log_step == 0:
+            if (i + 1) % args.log_step == 0:
                 log_info = 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}, Iteration time: {}'.format(
-                    epoch, args.num_epochs, i, total_step, loss.item(), batch_accuracy, iteration_time
+                    epoch, args.num_epochs, i + 1, total_step, loss.item(), batch_accuracy, iteration_time
                 )
                 print(log_info)
 
                 # ...log the running loss
-                writer.add_scalar('training loss', loss, step)
+                writer.add_scalar('training loss', loss.item(), step)
                 writer.add_scalar('training acc', batch_accuracy, step)
 
-            if i % args.val_step == 0:
+            if (i + 1) % args.val_step == 0:
                 # validation
                 print_validation_info(args, criterion, device, model, val_loader, writer, step)
 
