@@ -24,8 +24,8 @@ def train(args):
     ])
 
     train_dataset, val_dataset = read_dataset(
-        args.original_image_dir, args.tampered_image_dir, split=0.80,
-        transform=transform, max_images_per_video=args.max_images_per_video
+        args.original_image_dir, args.tampered_image_dir, transform=transform,
+        max_images_per_video=args.max_images_per_video
     )
 
     print('train data size: {}, validation data size: {}'.format(len(train_dataset), len(val_dataset)))
