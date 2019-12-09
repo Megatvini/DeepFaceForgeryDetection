@@ -28,6 +28,8 @@ def train(args):
         transform=transform, max_images_per_video=args.max_images_per_video
     )
 
+    print('train data size: {}, validation data size: {}'.format(len(train_dataset), len(val_dataset)))
+
     # Build data loader
     train_loader = get_loader(
         train_dataset, args.batch_size, shuffle=True, num_workers=args.num_workers
@@ -39,7 +41,6 @@ def train(args):
     # Device configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('training on', device)
-    print('train data size: {}, validation data size: {}'.format(len(train_dataset), len(val_dataset)))
 
     # Build the models
     model = ClassificationCNN().to(device)
@@ -142,7 +143,7 @@ def main():
     )
     parser.add_argument(
         '--tampered_image_dir', type=str, default='../dataset/images_tiny/tampered',
-        help='directory for tamprerd images'
+        help='directory for tampered images'
     )
     parser.add_argument('--log_step', type=int, default=10, help='step size for printing training log info')
     parser.add_argument('--val_step', type=int, default=50, help='step size for printing validation log info')
