@@ -56,6 +56,7 @@ def train(args):
     now = datetime.now()
     # Train the models
     total_step = len(train_loader)
+    step = 1
     for epoch in range(args.num_epochs):
         for i, (images, targets) in enumerate(train_loader):
             model.train()
@@ -74,7 +75,7 @@ def train(args):
 
             iteration_time = datetime.now() - now
             # Print log info
-            step = epoch * len(train_loader) + i + 1
+            step += 1
 
             if (i + 1) % args.log_step == 0:
                 log_info = 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}, Iteration time: {}'.format(
@@ -92,7 +93,7 @@ def train(args):
 
             now = datetime.now()
 
-    print_validation_info(args, criterion, device, model, val_loader, writer, total_step, final=True)
+    print_validation_info(args, criterion, device, model, val_loader, writer, step + 1, final=True)
     writer.add_text('model', str(model))
     writer.close()
 
