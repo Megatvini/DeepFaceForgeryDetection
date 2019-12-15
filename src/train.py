@@ -51,7 +51,11 @@ def train(args):
 
     training_images_sample, _ = next(iter(train_loader))
     grid = torchvision.utils.make_grid(training_images_sample)
+
+    # Store training parameters
     writer.add_image('sample_training_images', grid, 0)
+    writer.add_hparams(args.__dict__)
+    writer.add_text('model', str(model))
 
     now = datetime.now()
     # Train the models
@@ -94,7 +98,6 @@ def train(args):
             now = datetime.now()
 
     print_validation_info(args, criterion, device, model, val_loader, writer, step + 1, final=True)
-    writer.add_text('model', str(model))
     writer.close()
 
 
@@ -127,12 +130,6 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, st
         print('Validation - Loss: {:.3f}, Acc: {:.3f}, Time: {}'.format(val_loss, val_accuracy, datetime.now() - now))
         writer.add_scalar('validation loss', val_loss, step)
         writer.add_scalar('validation acc', val_accuracy, step)
-
-        if final:
-            writer.add_hparams(args.__dict__, {
-                'final_val_loss': val_loss,
-                'final_val_accuracy': val_accuracy,
-            })
 
 
 def main():
