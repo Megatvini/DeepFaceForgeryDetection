@@ -56,8 +56,8 @@ def get_file_name(file_path):
     return file_path.split('/')[-1]
 
 
-def read_json(file):
-    with open(f'../dataset/splits/{file}.json') as inp:
+def read_json(file_path):
+    with open(file_path) as inp:
         return json.load(inp)
 
 
@@ -65,20 +65,22 @@ def get_sets(data):
     return {x[0] for x in data} | {x[1] for x in data} | {'_'.join(x) for x in data}
 
 
-def get_video_ids(spl):
-    return get_sets(read_json(spl))
+def get_video_ids(spl, splits_path):
+    return get_sets(read_json(os.path.join(splits_path, f'{spl}.json')))
 
 
-def read_dataset(original_data_dir, tampered_data_dir, transform=None, max_images_per_video=40):
+def read_dataset(
+        original_data_dir, tampered_data_dir, transform=None, max_images_per_video=40, splits_path='../dataset/splits/'
+):
     original_video_dir_paths = listdir_with_full_paths(original_data_dir)
     tampered_video_dir_paths = listdir_with_full_paths(tampered_data_dir)
 
-    train_video_ids = get_video_ids('train')
+    train_video_ids = get_video_ids('train', splits_path)
     train_videos_original = [x for x in original_video_dir_paths if get_file_name(x) in train_video_ids]
     train_videos_tampered = [x for x in tampered_video_dir_paths if get_file_name(x) in train_video_ids]
     train_dataset = ImagesDataset(train_videos_original, train_videos_tampered, max_images_per_video, transform)
 
-    val_video_ids = get_video_ids('val')
+    val_video_ids = get_video_ids('val', splits_path)
     val_videos_original = [x for x in original_video_dir_paths if get_file_name(x) in val_video_ids]
     val_videos_tampered = [x for x in tampered_video_dir_paths if get_file_name(x) in val_video_ids]
     val_dataset = ImagesDataset(val_videos_original, val_videos_tampered, max_images_per_video, transform)
