@@ -1,4 +1,5 @@
 import argparse
+import os
 from datetime import datetime
 
 import torch
@@ -54,7 +55,7 @@ def train(args):
 
     # Store training parameters
     writer.add_image('sample_training_images', grid, 0)
-    writer.add_hparams(args.__dict__)
+    writer.add_hparams(args.__dict__, {})
     writer.add_text('model', str(model))
 
     now = datetime.now()
@@ -82,23 +83,34 @@ def train(args):
             step += 1
 
             if (i + 1) % args.log_step == 0:
-                log_info = 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}, Iteration time: {}'.format(
-                    epoch, args.num_epochs, i + 1, total_step, loss.item(), batch_accuracy, iteration_time
-                )
-                print(log_info)
-
-                # ...log the running loss
-                writer.add_scalar('training loss', loss.item(), step)
-                writer.add_scalar('training acc', batch_accuracy, step)
+                print_training_info(args, batch_accuracy, epoch, i, iteration_time, loss, step, total_step, writer)
 
             if (i + 1) % args.val_step == 0:
-                # validation
                 print_validation_info(args, criterion, device, model, val_loader, writer, step)
+                save_model_checkpoint(args, epoch, i, model)
 
             now = datetime.now()
 
     print_validation_info(args, criterion, device, model, val_loader, writer, step + 1, final=True)
     writer.close()
+
+
+def save_model_checkpoint(args, epoch, i, model):
+    model_dir = args.model_path
+    os.makedirs(model_dir, exist_ok=True)
+    model_path = os.path.join(model_dir, f'{datetime.now()}_model_epoch_{epoch}_iter_{i}.pt')
+    torch.save(model.state_dict(), model_path)
+    print(f'New checkpoint saved at {model_path}')
+
+
+def print_training_info(args, batch_accuracy, epoch, i, iteration_time, loss, step, total_step, writer):
+    log_info = 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}, Iteration time: {}'.format(
+        epoch, args.num_epochs, i + 1, total_step, loss.item(), batch_accuracy, iteration_time
+    )
+    print(log_info)
+
+    writer.add_scalar('training loss', loss.item(), step)
+    writer.add_scalar('training acc', batch_accuracy, step)
 
 
 def print_validation_info(args, criterion, device, model, val_loader, writer, step, final=False):
