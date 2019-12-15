@@ -1,0 +1,8 @@
+Dec04_11-57-43_Horst: resnet 50, pretrained false, neurAL TEXTURES, C40, 10 images per video, 15 epochs, regularization 0.001, batch size 22, learning rate 0.00001, training set size 540, validations set size 60
+Dec04_12-33-59_Horst: resnet 50, pretrained false, neurAL TEXTURES, C40, 10 images per video, 15 epochs, regularization 0.001, batch size 22, learning rate 0.0001, training set size 540, validations set size 60
+Dec04_13-01-49_Horst: resnet 50, pretrained false, neurAL TEXTURES, C40, 10 images per video, 15 epochs, regularization 0.001, batch size 22, learning rate 0.000001, training set size 540, validations set size 60
+Dec04_18-00-28_Horst: resnet 50, pretrained false, neurAL TEXTURES, C40, 10 images per video, 25 epochs, regularization 0.001, batch size 22, learning rate 0.000001, training set size 540, validations set size 60
+Dec04_18-39-28_Horst: resnet 50, pretrained false, neurAL TEXTURES, C40, 10 images per video, 25 epochs, regularization 0.01, batch size 22, learning rate 0.000001, training set size 540, validations set size 60
+Dec04_19-19-48_Horst: resnet 50, pretrained false, neurAL TEXTURES, C40, 10 images per video, 25 epochs, regularization 0.005, batch size 22, learning rate 0.000001, training set size 540, validations set size 60
+Dec04_20-00-47_Horst: resnet 50, pretrained false, neurAL TEXTURES, C40, 10 images per video, 25 epochs, regularization 0.0025, batch size 22, learning rate 0.000001, training set size 540, validations set size 60
+

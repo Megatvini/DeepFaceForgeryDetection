@@ -7,3 +7,4 @@ tqdm==4.38.0
 tensorflow
 tensorflow-estimator==2.0.1
 tensorboard==2.0.2
+dlib==19.19.0
