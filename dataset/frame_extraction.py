@@ -73,7 +73,7 @@ def extract_frames(inp):
             break
         face_image = extract_face(image)
         if face_image is not None:
-            print(f'no face found, so skipping {output_path}')
+            print('no face found, so skipping {}'.format(output_path))
             out_path = join(output_path, '{}{:04d}.jpg'.format(file_prefix, frame_num))
             cv2.imwrite(out_path, face_image)
         frame_num += 1
