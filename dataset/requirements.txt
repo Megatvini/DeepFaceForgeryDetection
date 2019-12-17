@@ -1,2 +1,3 @@
 tqdm==4.36.1
 opencv-python==4.1.1.26
+dlib==19.19.0
