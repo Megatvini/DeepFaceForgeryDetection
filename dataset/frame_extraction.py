@@ -52,7 +52,8 @@ def crop_image(image, face, scale=1.3):
 
 
 def extract_face(image):
-    detections = face_detector(image, 1)
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    detections, *_ = face_detector.run(gray_image, 1, -1)
     if len(detections) == 0:
         return None
 
@@ -72,10 +73,11 @@ def extract_frames(inp):
         if not success:
             break
         face_image = extract_face(image)
+        out_file_path = join(output_path, '{}{:04d}.jpg'.format(file_prefix, frame_num))
         if face_image is not None:
-            print('no face found, so skipping {}'.format(output_path))
-            out_path = join(output_path, '{}{:04d}.jpg'.format(file_prefix, frame_num))
-            cv2.imwrite(out_path, face_image)
+            cv2.imwrite(out_file_path, face_image)
+        else:
+            print('no face found, so skipping {}'.format(out_file_path))
         frame_num += 1
     reader.release()
     return length
