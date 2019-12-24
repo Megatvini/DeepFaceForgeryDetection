@@ -10,10 +10,11 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class ImagesDataset(Dataset):
-    def __init__(self, original_video_dirs, tampered_video_dirs, max_images_per_video, transform=None):
+    def __init__(self, original_video_dirs, tampered_video_dirs, max_images_per_video, transform=None, window_size=5):
         self.max_images_per_video = max_images_per_video
         self.image_paths = []
         self.transform = transform
+        self.window_size = window_size
         self._read_images(original_video_dirs, 'original')
         self._read_images(tampered_video_dirs, 'tampered')
         self.image_paths = sorted(self.image_paths, key=lambda x: x['img_path'])
@@ -32,6 +33,12 @@ class ImagesDataset(Dataset):
             })
 
     def __getitem__(self, index):
+        data = [self._get_item(index + i) for i in range(-self.window_size//2 + 1, self.window_size//2 + 1)]
+        images = [x[0] for x in data]
+        targets = [x[1] for x in data]
+        return torch.stack(images).permute(1, 0, 2, 3), torch.stack(targets)
+
+    def _get_item(self, index):
         img = self.image_paths[index]
         target = torch.tensor(0.0) if img['class'] == 'original' else torch.tensor(1.0)
         image = Image.open(img['img_path'])
@@ -40,7 +47,7 @@ class ImagesDataset(Dataset):
         return img['video_id'], image, target
 
     def __len__(self):
-        return len(self.image_paths)
+        return len(self.image_paths) - self.window_size // 2 - 1
 
 
 def listdir_with_full_paths(dir_path):
