@@ -46,6 +46,9 @@ def train(args):
     # Build the models
     model = ClassificationCNN().to(device)
 
+    print(f"Total parameters of model: {sum(p.numel() for p in model.parameters()):,}")
+    print(f"Trainable: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
+
     # Loss and optimizer
     criterion = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.regularization)
