@@ -36,7 +36,7 @@ def train(args):
         train_dataset, args.batch_size, shuffle=True, num_workers=args.num_workers
     )
     val_loader = get_loader(
-        val_dataset, args.batch_size, shuffle=True, num_workers=args.num_workers
+        val_dataset, args.batch_size, shuffle=False, num_workers=args.num_workers
     )
 
     # Device configuration
@@ -65,6 +65,7 @@ def train(args):
     # Train the models
     total_step = len(train_loader)
     step = 1
+    best_val_acc = 0.0
     for epoch in range(args.num_epochs):
         for i, (images, targets) in enumerate(train_loader):
             model.train()
@@ -89,9 +90,10 @@ def train(args):
                 print_training_info(args, batch_accuracy, epoch, i, iteration_time, loss, step, total_step, writer)
 
             if (i + 1) % args.val_step == 0:
-                print_validation_info(args, criterion, device, model, val_loader, writer, step)
-                save_model_checkpoint(args, epoch, i, model)
-
+                val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, step)
+                if val_acc > best_val_acc:
+                    save_model_checkpoint(args, epoch, i, model)
+                    best_val_acc = val_acc
             now = datetime.now()
 
     print_validation_info(args, criterion, device, model, val_loader, writer, step + 1, final=True)
@@ -145,6 +147,7 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, st
         print('Validation - Loss: {:.3f}, Acc: {:.3f}, Time: {}'.format(val_loss, val_accuracy, datetime.now() - now))
         writer.add_scalar('validation loss', val_loss, step)
         writer.add_scalar('validation acc', val_accuracy, step)
+    return val_accuracy
 
 
 def main():
@@ -162,7 +165,6 @@ def main():
     parser.add_argument('--val_step', type=int, default=50, help='step size for printing validation log info')
     parser.add_argument('--max_images_per_video', type=int, default=10, help='maximum images to use from one video')
     parser.add_argument('--debug', type=bool, default=False, help='include additional debugging ifo')
-    parser.add_argument('--save_step', type=int, default=1000, help='step size for saving trained models')
 
     parser.add_argument('--num_epochs', type=int, default=15)
     parser.add_argument('--regularization', type=float, default=0.001)
