@@ -5,16 +5,16 @@ import torchvision.models as models
 class ClassificationCNN(nn.Module):
     def __init__(self):
         super(ClassificationCNN, self).__init__()
-        resnet = models.resnet152(pretrained=True)
+        resnet = models.resnet18(pretrained=True)
 
-        for param in resnet.parameters():
-            param.requires_grad = False
-
-        resnet.fc = nn.Linear(2048, 256)
+        final_hidden_dim = 256
+        resnet.fc = nn.Linear(512, final_hidden_dim)
 
         self.model = nn.Sequential(
             resnet,
-            nn.Linear(256, 1),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(final_hidden_dim, 1),
             nn.Sigmoid()
         )
 
