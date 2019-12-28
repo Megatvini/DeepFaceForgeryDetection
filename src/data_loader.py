@@ -35,8 +35,8 @@ class ImagesDataset(Dataset):
     def __getitem__(self, index):
         data = [self._get_item(index + i) for i in range(-self.window_size//2 + 1, self.window_size//2 + 1)]
         images = [x[0] for x in data]
-        targets = [x[1] for x in data]
-        return torch.stack(images).permute(1, 0, 2, 3), torch.stack(targets)
+        targets = data[len(data)//2][1]
+        return torch.stack(images).permute(1, 0, 2, 3), targets
 
     def _get_item(self, index):
         img = self.image_paths[index]

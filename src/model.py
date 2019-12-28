@@ -1,17 +1,23 @@
 import torch.nn as nn
-import torchvision.models as models
+
+
+class Flatten(nn.Module):
+    def forward(self, x):
+        x = x.view(x.size()[0], -1)
+        return x
 
 
 class ClassificationCNN(nn.Module):
     def __init__(self):
         super(ClassificationCNN, self).__init__()
-        self.conv1 = nn.Conv3d(3, 3, kernel_size=3)
-        self.conv2 = nn.Conv3d(3, 1, kernel_size=3)
-        self.fc = nn.Linear(2048, 1)
+        self.model = nn.Sequential(
+            nn.Conv3d(3, 1, kernel_size=3, padding=1),
+            nn.ReLU(),
+            Flatten(),
+            nn.Linear(224*224*5, 1),
+            nn.Sigmoid()
+        )
 
     def forward(self, images):
-        out = self.conv1(images)
-        out = self.conv2(out)
-        out = out.view(-1)
-        out = self.fc(out)
-        return out
+        out = self.model(images)
+        return out.squeeze()
