@@ -50,7 +50,7 @@ def train(args):
     print(f"Trainable: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
 
     # Loss and optimizer
-    criterion = nn.BCELoss()
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.regularization)
 
     training_images_sample, _ = next(iter(train_loader))
@@ -80,7 +80,7 @@ def train(args):
             loss.backward()
             optimizer.step()
 
-            batch_accuracy = float(outputs.round().eq(targets).sum()) / len(targets)
+            batch_accuracy = float((outputs > 0.0).eq(targets).sum()) / len(targets)
 
             iteration_time = datetime.now() - now
             # Print log info
@@ -134,7 +134,7 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, st
             loss = criterion(outputs, targets)
             loss_values.append(loss.item())
 
-            predictions = outputs.round()
+            predictions = outputs > 0.0
             correct_predictions += int(targets.eq(predictions).sum().cpu())
             total_predictions += len(images)
             if args.debug:

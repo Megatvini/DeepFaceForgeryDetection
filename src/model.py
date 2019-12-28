@@ -14,8 +14,7 @@ class ClassificationCNN(nn.Module):
             resnet,
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(final_hidden_dim, 1),
-            nn.Sigmoid()
+            nn.Linear(final_hidden_dim, 1)
         )
 
     def forward(self, images):
