@@ -54,7 +54,7 @@ def train(args):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.regularization)
 
-    training_images_sample, _ = next(iter(train_loader))
+    _, training_images_sample, _ = next(iter(train_loader))
     grid = torchvision.utils.make_grid(training_images_sample)
 
     # Store training parameters
@@ -68,7 +68,7 @@ def train(args):
     step = 1
     best_val_acc = 0.0
     for epoch in range(args.num_epochs):
-        for i, (images, targets) in enumerate(train_loader):
+        for i, (video_ids, images, targets) in enumerate(train_loader):
             model.train()
             # Set mini-batch dataset
             images = images.to(device)
@@ -143,7 +143,8 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, st
         correct_predictions = 0
         total_predictions = 0
 
-        for images, targets in val_loader:
+        misclassified_video_ids = set()
+        for video_ids, images, targets in val_loader:
             images = images.to(device)
             targets = targets.to(device)
 
@@ -152,7 +153,9 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, st
             loss_values.append(loss.item())
 
             predictions = outputs > 0.0
-            correct_predictions += int(targets.eq(predictions).sum().cpu())
+            true_preds = targets.eq(predictions)
+            correct_predictions += int(true_preds.sum().cpu())
+            misclassified_video_ids.update(video_ids[~true_preds].tolist())
             total_predictions += len(images)
             if args.debug:
                 print(outputs)
@@ -161,7 +164,12 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, st
 
         val_loss = sum(loss_values) / len(loss_values)
         val_accuracy = correct_predictions / total_predictions
-        print('Validation - Loss: {:.3f}, Acc: {:.3f}, Time: {}'.format(val_loss, val_accuracy, datetime.now() - now))
+        validation_time = datetime.now() - now
+
+        print(
+            'Validation - Loss: {:.3f}, Acc: {:.3f}, Time: {}, Total misclassified videos: {}'
+                .format(val_loss, val_accuracy, validation_time, len(misclassified_video_ids))
+        )
         writer.add_scalar('validation loss', val_loss, step)
         writer.add_scalar('validation acc', val_accuracy, step)
     return val_accuracy

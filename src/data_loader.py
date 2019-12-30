@@ -16,6 +16,7 @@ class ImagesDataset(Dataset):
         self.transform = transform
         self._read_images(original_video_dirs, 'original')
         self._read_images(tampered_video_dirs, 'tampered')
+        self.image_paths = sorted(self.image_paths, key=lambda x: x['img_path'])
 
     def _read_images(self, video_dirs, class_name):
         for video_dir in video_dirs:
@@ -25,7 +26,7 @@ class ImagesDataset(Dataset):
         video_id = get_file_name(video_dir)
         for image_name in os.listdir(video_dir)[:self.max_images_per_video]:
             self.image_paths.append({
-                'video_id': video_id,
+                'video_id': int(video_id),
                 'class': class_name,
                 'img_path': os.path.join(video_dir, image_name)
             })
@@ -36,7 +37,7 @@ class ImagesDataset(Dataset):
         image = Image.open(img['img_path'])
         if self.transform is not None:
             image = self.transform(image)
-        return image, target
+        return img['video_id'], image, target
 
     def __len__(self):
         return len(self.image_paths)
