@@ -10,6 +10,7 @@ from torchvision import transforms
 
 from data_loader import get_loader, read_dataset
 from model import ClassificationCNN
+from utils import write_json, copy_file
 
 
 def train(args):
@@ -92,19 +93,35 @@ def train(args):
             if (i + 1) % args.val_step == 0:
                 val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, step)
                 if val_acc > best_val_acc:
-                    save_model_checkpoint(args, epoch, i, model)
+                    save_model_checkpoint(args, epoch, i, model, val_acc, writer.get_logdir())
                     best_val_acc = val_acc
             now = datetime.now()
 
-    print_validation_info(args, criterion, device, model, val_loader, writer, step + 1, final=True)
+    print_validation_info(args, criterion, device, model, val_loader, writer, step + 1)
     writer.close()
 
 
-def save_model_checkpoint(args, epoch, i, model):
-    model_dir = args.model_path
+def save_model_checkpoint(args, epoch, i, model, val_acc, writer_log_dir):
+    run_id = writer_log_dir.split('/')[-1]
+    model_dir = os.path.join(args.model_path, run_id)
     os.makedirs(model_dir, exist_ok=True)
-    model_path = os.path.join(model_dir, f'{datetime.now()}_model_epoch_{epoch}_iter_{i}.pt')
+
+    model_path = os.path.join(model_dir, f'model.pt')
     torch.save(model.state_dict(), model_path)
+
+    model_info = {
+        'epoch': epoch,
+        'iter': i,
+        'val_acc': val_acc,
+        'model_str': str(model)
+    }
+    json_path = os.path.join(model_dir, 'info.json')
+    write_json(model_info, json_path)
+
+    src_model_file = os.path.join(os.path.dirname(__file__), 'model.py')
+    dest_model_file = os.path.join(model_dir, 'model.py')
+    copy_file(src_model_file, dest_model_file)
+
     print(f'New checkpoint saved at {model_path}')
 
 
@@ -118,7 +135,7 @@ def print_training_info(args, batch_accuracy, epoch, i, iteration_time, loss, st
     writer.add_scalar('training acc', batch_accuracy, step)
 
 
-def print_validation_info(args, criterion, device, model, val_loader, writer, step, final=False):
+def print_validation_info(args, criterion, device, model, val_loader, writer, step):
     now = datetime.now()
     model.eval()
     with torch.no_grad():
