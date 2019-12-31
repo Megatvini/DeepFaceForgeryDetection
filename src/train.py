@@ -52,7 +52,14 @@ def train(args):
 
     # Loss and optimizer
     criterion = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.regularization)
+    optimizer = torch.optim.SGD(
+        model.parameters(), lr=args.learning_rate, weight_decay=args.regularization, momentum=0.9
+    )
+
+    # decrease learning rate if validation accuracy has not increased
+    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='max', factor=0.5, patience=10, verbose=True,
+    )
 
     _, training_images_sample, _ = next(iter(train_loader))
     grid = torchvision.utils.make_grid(training_images_sample)
@@ -92,6 +99,7 @@ def train(args):
 
             if (i + 1) % args.val_step == 0:
                 val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, step)
+                lr_scheduler.step(val_acc)
                 if val_acc > best_val_acc:
                     save_model_checkpoint(args, epoch, i, model, val_acc, writer.get_logdir())
                     best_val_acc = val_acc
@@ -111,7 +119,6 @@ def save_model_checkpoint(args, epoch, i, model, val_acc, writer_log_dir):
 
     model_info = {
         'epoch': epoch,
-        'iter': i,
         'val_acc': val_acc,
         'model_str': str(model)
     }
