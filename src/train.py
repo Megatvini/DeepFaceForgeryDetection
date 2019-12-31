@@ -104,8 +104,6 @@ def train(args):
         if val_acc > best_val_acc:
             save_model_checkpoint(args, epoch, model, val_acc, writer.get_logdir())
             best_val_acc = val_acc
-
-    print_validation_info(args, criterion, device, model, val_loader, writer, step + 1)
     writer.close()
 
 
