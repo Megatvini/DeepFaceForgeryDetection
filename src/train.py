@@ -96,20 +96,20 @@ def train(args):
 
             if (i + 1) % args.log_step == 0:
                 print_training_info(args, batch_accuracy, epoch, i, iteration_time, loss, step, total_step, writer)
-
-            if (i + 1) % args.val_step == 0:
-                val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, step)
-                lr_scheduler.step(val_acc)
-                if val_acc > best_val_acc:
-                    save_model_checkpoint(args, epoch, i, model, val_acc, writer.get_logdir())
-                    best_val_acc = val_acc
             now = datetime.now()
+
+        # validation step after full epoch
+        val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, step)
+        lr_scheduler.step(val_acc)
+        if val_acc > best_val_acc:
+            save_model_checkpoint(args, epoch, model, val_acc, writer.get_logdir())
+            best_val_acc = val_acc
 
     print_validation_info(args, criterion, device, model, val_loader, writer, step + 1)
     writer.close()
 
 
-def save_model_checkpoint(args, epoch, i, model, val_acc, writer_log_dir):
+def save_model_checkpoint(args, epoch, model, val_acc, writer_log_dir):
     run_id = writer_log_dir.split('/')[-1]
     model_dir = os.path.join(args.model_path, run_id)
     os.makedirs(model_dir, exist_ok=True)
@@ -194,7 +194,6 @@ def main():
         help='directory for tampered images'
     )
     parser.add_argument('--log_step', type=int, default=10, help='step size for printing training log info')
-    parser.add_argument('--val_step', type=int, default=50, help='step size for printing validation log info')
     parser.add_argument('--max_images_per_video', type=int, default=10, help='maximum images to use from one video')
     parser.add_argument('--debug', type=bool, default=False, help='include additional debugging ifo')
 
