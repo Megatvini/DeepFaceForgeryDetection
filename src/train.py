@@ -19,7 +19,7 @@ def train(args):
 
     # Image preprocessing, normalization for the pretrained resnet
     transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((112, 112)),
         transforms.ToTensor(),
         transforms.Normalize((0.485, 0.456, 0.406),
                              (0.229, 0.224, 0.225))
@@ -58,7 +58,7 @@ def train(args):
 
     # decrease learning rate if validation accuracy has not increased
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='max', factor=0.5, patience=10, verbose=True,
+        optimizer, mode='max', factor=1/4, patience=args.patience, verbose=True,
     )
 
     _, training_images_sample, _ = next(iter(train_loader))
@@ -200,6 +200,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=22)
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--learning_rate', type=float, default=0.00001)
+    parser.add_argument('--patience', type=int, default=2)
     args = parser.parse_args()
     train(args)
 
