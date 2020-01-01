@@ -34,9 +34,10 @@ class ImagesDataset(Dataset):
 
     def __getitem__(self, index):
         data = [self._get_item(index + i) for i in range(-self.window_size//2 + 1, self.window_size//2 + 1)]
-        images = [x[0] for x in data]
-        targets = data[len(data)//2][1]
-        return torch.stack(images).permute(1, 0, 2, 3), targets
+        images = [x[1] for x in data]
+        targets = data[len(data)//2][2]
+        video_id = data[len(data)//2][0]
+        return torch.tensor(video_id), torch.stack(images).permute(1, 0, 2, 3), targets
 
     def _get_item(self, index):
         img = self.image_paths[index]
@@ -100,5 +101,6 @@ def get_loader(dataset, batch_size, shuffle, num_workers):
     data_loader = torch.utils.data.DataLoader(dataset=dataset,
                                               batch_size=batch_size,
                                               shuffle=shuffle,
-                                              num_workers=num_workers)
+                                              num_workers=num_workers,
+                                              drop_last=True)
     return data_loader

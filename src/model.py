@@ -14,7 +14,7 @@ class ClassificationCNN(nn.Module):
             nn.Conv3d(3, 1, kernel_size=3, padding=1),
             nn.ReLU(),
             Flatten(),
-            nn.Linear(224*224*5, 1),
+            nn.Linear(112*112*5, 1),
             nn.Sigmoid()
         )
 
