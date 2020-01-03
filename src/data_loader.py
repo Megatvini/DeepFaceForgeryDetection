@@ -10,8 +10,12 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class ImagesDataset(Dataset):
-    def __init__(self, original_video_dirs, tampered_video_dirs, max_images_per_video, transform=None, window_size=5):
+    def __init__(
+            self, original_video_dirs, tampered_video_dirs, max_images_per_video,
+            max_videos=1000, transform=None, window_size=5
+    ):
         self.max_images_per_video = max_images_per_video
+        self.max_videos = max_videos
         self.image_paths = []
         self.transform = transform
         self.window_size = window_size
@@ -20,12 +24,13 @@ class ImagesDataset(Dataset):
         self.image_paths = sorted(self.image_paths, key=lambda x: x['img_path'])
 
     def _read_images(self, video_dirs, class_name):
-        for video_dir in video_dirs:
+        for video_dir in video_dirs[:self.max_videos]:
             self._read_class_images(class_name, video_dir)
 
     def _read_class_images(self, class_name, video_dir):
         video_id = get_file_name(video_dir)
-        for image_name in os.listdir(video_dir)[:self.max_images_per_video]:
+        sorted_images_names = sorted(os.listdir(video_dir))[:self.max_images_per_video]
+        for image_name in sorted_images_names:
             self.image_paths.append({
                 'video_id': int(video_id),
                 'class': class_name,
@@ -79,7 +84,8 @@ def get_video_ids(spl, splits_path):
 
 
 def read_dataset(
-        original_data_dir, tampered_data_dir, transform=None, max_images_per_video=40, splits_path='../dataset/splits/'
+        original_data_dir, tampered_data_dir, transform=None, max_videos=1000, window_size=5,
+        max_images_per_video=40, splits_path='../dataset/splits/'
 ):
     original_video_dir_paths = listdir_with_full_paths(original_data_dir)
     tampered_video_dir_paths = listdir_with_full_paths(tampered_data_dir)
@@ -87,12 +93,19 @@ def read_dataset(
     train_video_ids = get_video_ids('train', splits_path)
     train_videos_original = [x for x in original_video_dir_paths if get_file_name(x) in train_video_ids]
     train_videos_tampered = [x for x in tampered_video_dir_paths if get_file_name(x) in train_video_ids]
-    train_dataset = ImagesDataset(train_videos_original, train_videos_tampered, max_images_per_video, transform)
+
+    train_dataset = ImagesDataset(
+        train_videos_original, train_videos_tampered, max_images_per_video=max_images_per_video, transform=transform,
+        max_videos=max_videos, window_size=window_size
+    )
 
     val_video_ids = get_video_ids('val', splits_path)
     val_videos_original = [x for x in original_video_dir_paths if get_file_name(x) in val_video_ids]
     val_videos_tampered = [x for x in tampered_video_dir_paths if get_file_name(x) in val_video_ids]
-    val_dataset = ImagesDataset(val_videos_original, val_videos_tampered, max_images_per_video, transform)
+    val_dataset = ImagesDataset(
+        val_videos_original, val_videos_tampered, max_images_per_video=max_images_per_video, transform=transform,
+        max_videos=max_videos, window_size=window_size
+    )
 
     return train_dataset, val_dataset
 
@@ -102,5 +115,6 @@ def get_loader(dataset, batch_size, shuffle, num_workers):
                                               batch_size=batch_size,
                                               shuffle=shuffle,
                                               num_workers=num_workers,
-                                              drop_last=True)
+                                              drop_last=True,
+                                              pin_memory=True)
     return data_loader

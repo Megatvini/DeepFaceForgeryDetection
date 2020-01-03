@@ -27,7 +27,8 @@ def train(args):
 
     train_dataset, val_dataset = read_dataset(
         args.original_image_dir, args.tampered_image_dir, transform=transform,
-        max_images_per_video=args.max_images_per_video
+        max_images_per_video=args.max_images_per_video, max_videos=args.max_videos,
+        window_size=args.window_size, splits_path=args.splits_path
     )
 
     print('train data size: {}, validation data size: {}'.format(len(train_dataset), len(val_dataset)))
@@ -196,6 +197,9 @@ def main():
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--learning_rate', type=float, default=0.00001)
     parser.add_argument('--patience', type=int, default=2)
+    parser.add_argument('--window_size', type=int, default=5)
+    parser.add_argument('--max_videos', type=int, default=1000)
+    parser.add_argument('--splits_path', type=str, default='../dataset/splits/')
     args = parser.parse_args()
     train(args)
 
