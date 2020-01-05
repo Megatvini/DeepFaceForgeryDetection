@@ -50,7 +50,7 @@ def train(args):
 
     input_shape = next(iter(train_loader))[1].shape
     print('input shape', input_shape)
-    summary(model, input_shape[1:], batch_size=input_shape[0])
+    summary(model, input_shape[1:], batch_size=input_shape[0], device=device)
 
     # Loss and optimizer
     criterion = nn.BCEWithLogitsLoss()

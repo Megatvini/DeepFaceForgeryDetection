@@ -8,4 +8,3 @@ tensorflow
 tensorflow-estimator==2.0.1
 tensorboard==2.0.2
 dlib==19.19.0
-torchsummary==1.5.1
