@@ -9,7 +9,7 @@ from torchsummary import summary
 from torchvision import transforms
 
 from data_loader import get_loader, read_dataset
-from model import ClassificationCNN
+from model import CNN_LSTM
 from utils import write_json, copy_file
 
 
@@ -46,7 +46,7 @@ def train(args):
     print('training on', device)
 
     # Build the models
-    model = ClassificationCNN().to(device)
+    model = CNN_LSTM().to(device)
 
     input_shape = next(iter(train_loader))[1].shape
     print('input shape', input_shape)

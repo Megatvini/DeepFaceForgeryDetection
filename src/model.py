@@ -1,19 +1,20 @@
 import torchvision
 from torch import nn
+from resnet3d import resnet10
 
 
 class Lambda(nn.Module):
-    def __init__(self, fn) -> None:
-        super().__init__()
+    def __init__(self, fn):
+        super(Lambda, self).__init__()
         self.fn = fn
 
     def forward(self, x):
         return self.fn(x)
 
 
-class ClassificationCNN(nn.Module):
+class CNN_LSTM(nn.Module):
     def __init__(self, image_encoding_size=512, hidden_size=512):
-        super(ClassificationCNN, self).__init__()
+        super(CNN_LSTM, self).__init__()
         self.image_encoding_size = image_encoding_size
         self.hidden_size = hidden_size
         self.cnn_encoder = nn.Sequential(
@@ -35,3 +36,56 @@ class ClassificationCNN(nn.Module):
         mid_frame = out[:, depth // 2, :]
         res = self.fc(mid_frame)
         return res.squeeze()
+
+
+class ResNet3d(nn.Module):
+    def __init__(self):
+        super(ResNet3d, self).__init__()
+        self.model = resnet10(num_classes=1)
+
+    def forward(self, images):
+        return self.model(images).squeeze()
+
+
+class ResNet2d(nn.Module):
+    def __init__(self, final_hidden_dim=256, dropout=0.5):
+        super(ResNet2d, self).__init__()
+        resnet = torchvision.models.resnet18(pretrained=True)
+        resnet.fc = nn.Linear(512, final_hidden_dim)
+        self.model = nn.Sequential(
+            resnet,
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(final_hidden_dim, 1)
+        )
+
+    def forward(self, images):
+        return self.model(images.squeeze()).squeeze()
+
+
+class Custom3DModel(nn.Module):
+    def __init__(self):
+        super(Custom3DModel, self).__init__()
+        self.model = nn.Sequential(
+            nn.Conv3d(3, 16, 7, padding=3, bias=False),
+            nn.BatchNorm3d(16),
+            nn.ReLU(),
+            nn.Conv3d(16, 32, 3, padding=1, stride=2, bias=False),
+            nn.BatchNorm3d(32),
+            nn.ReLU(),
+            nn.Conv3d(32, 64, 3, padding=1, stride=2, bias=False),
+            nn.BatchNorm3d(64),
+            nn.ReLU(),
+
+            nn.Conv3d(64, 128, 3, padding=1, stride=2, bias=False),
+            nn.BatchNorm3d(128),
+            nn.ReLU(),
+
+            nn.AdaptiveAvgPool3d((1, 1, 1)),
+            nn.Flatten(),
+            nn.Linear(128, 1)
+        )
+
+    def forward(self, images):
+        out = self.model(images)
+        return out.squeeze()
