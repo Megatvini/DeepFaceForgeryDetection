@@ -5,12 +5,11 @@ from datetime import datetime
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
-from torchsummary import summary
 from torchvision import transforms
 
 from data_loader import get_loader, read_dataset
 from model import CNN_LSTM
-from utils import write_json, copy_file
+from utils import write_json, copy_file, summary
 
 
 def train(args):
