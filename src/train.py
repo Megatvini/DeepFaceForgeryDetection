@@ -4,8 +4,8 @@ from datetime import datetime
 
 import torch
 import torch.nn as nn
-import torchvision
 from torch.utils.tensorboard import SummaryWriter
+from torchsummary import summary
 from torchvision import transforms
 
 from data_loader import get_loader, read_dataset
@@ -48,8 +48,9 @@ def train(args):
     # Build the models
     model = ClassificationCNN().to(device)
 
-    print(f"Total parameters of model: {sum(p.numel() for p in model.parameters()):,}")
-    print(f"Trainable: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
+    input_shape = next(iter(train_loader))[1].shape
+    print('input shape', input_shape)
+    summary(model, input_shape[1:], batch_size=input_shape[0])
 
     # Loss and optimizer
     criterion = nn.BCEWithLogitsLoss()
