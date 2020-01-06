@@ -42,7 +42,10 @@ class ImagesDataset(Dataset):
         images = [x[1] for x in data]
         targets = data[len(data)//2][2]
         video_id = data[len(data)//2][0]
-        return torch.tensor(video_id), torch.stack(images).permute(1, 0, 2, 3), targets
+        if self.window_size > 1:
+            return torch.tensor(video_id), torch.stack(images).permute(1, 0, 2, 3), targets
+        else:
+            return video_id, images[0], targets
 
     def _get_item(self, index):
         img = self.image_paths[index]
