@@ -8,8 +8,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 
 from data_loader import get_loader, read_dataset
-from model import CNN_LSTM
+from model import FaceRecognitionCNN
 from utils import write_json, copy_file, summary
+from facenet_pytorch import fixed_image_standardization
 
 
 def train(args):
@@ -18,10 +19,9 @@ def train(args):
 
     # Image preprocessing, normalization for the pretrained resnet
     transform = transforms.Compose([
-        transforms.Resize((112, 112)),
+        transforms.Resize((160, 160)),
         transforms.ToTensor(),
-        transforms.Normalize((0.485, 0.456, 0.406),
-                             (0.229, 0.224, 0.225))
+        fixed_image_standardization
     ])
 
     train_dataset, val_dataset = read_dataset(
@@ -45,7 +45,7 @@ def train(args):
     print('training on', device)
 
     # Build the models
-    model = CNN_LSTM().to(device)
+    model = FaceRecognitionCNN().to(device)
 
     input_shape = next(iter(train_loader))[1].shape
     print('input shape', input_shape)

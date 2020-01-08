@@ -1,6 +1,7 @@
 import torchvision
 from torch import nn
 from resnet3d import resnet10
+from facenet_pytorch import InceptionResnetV1
 
 
 class Lambda(nn.Module):
@@ -13,7 +14,7 @@ class Lambda(nn.Module):
 
 
 class CNN_LSTM(nn.Module):
-    def __init__(self, image_encoding_size=512, hidden_size=512, pretrained_encoder=True):
+    def __init__(self, image_encoding_size=128, hidden_size=128, pretrained_encoder=True):
         super(CNN_LSTM, self).__init__()
         self.image_encoding_size = image_encoding_size
         self.hidden_size = hidden_size
@@ -27,7 +28,6 @@ class CNN_LSTM(nn.Module):
             image_encoding_size, hidden_size, num_layers=1, bias=True, batch_first=True, bidirectional=True
         )
         self.relu = nn.ReLU()
-        self.droupout = nn.Dropout(0.5)
         self.fc = nn.Linear(2*hidden_size, 1)
 
     def forward(self, images):
@@ -79,6 +79,20 @@ class SqueezeNet2d(nn.Module):
 
     def forward(self, images):
         return self.model(images.squeeze()).squeeze()
+
+
+class FaceRecognitionCNN(nn.Module):
+    def __init__(self):
+        super(FaceRecognitionCNN, self).__init__()
+        self.resnet = InceptionResnetV1(pretrained='vggface2')
+        self.relu = nn.ReLU()
+        self.fc = nn.Linear(512, 1)
+
+    def forward(self, images):
+        out = self.resnet(images)
+        out = self.relu(out)
+        out = self.fc(out)
+        return out.squeeze()
 
 
 class Custom3DModel(nn.Module):
