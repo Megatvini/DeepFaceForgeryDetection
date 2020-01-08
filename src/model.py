@@ -86,11 +86,13 @@ class FaceRecognitionCNN(nn.Module):
         super(FaceRecognitionCNN, self).__init__()
         self.resnet = InceptionResnetV1(pretrained='vggface2')
         self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.5)
         self.fc = nn.Linear(512, 1)
 
     def forward(self, images):
         out = self.resnet(images)
         out = self.relu(out)
+        out = self.dropout(out)
         out = self.fc(out)
         return out.squeeze()
 
