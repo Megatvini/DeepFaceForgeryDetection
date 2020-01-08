@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
+import numpy as np
 
 from data_loader import get_loader, read_dataset
 from model import FaceRecognitionCNN
@@ -20,6 +21,7 @@ def train(args):
     # Image preprocessing, normalization for the pretrained resnet
     transform = transforms.Compose([
         transforms.Resize((160, 160)),
+        np.float32,
         transforms.ToTensor(),
         fixed_image_standardization
     ])
@@ -46,6 +48,8 @@ def train(args):
 
     # Build the models
     model = FaceRecognitionCNN().to(device)
+    for m in model.resnet.parameters():
+        m.requires_grad_(False)
 
     input_shape = next(iter(train_loader))[1].shape
     print('input shape', input_shape)
@@ -100,6 +104,12 @@ def train(args):
         if val_acc > best_val_acc:
             save_model_checkpoint(args, epoch, model, val_acc, writer.get_logdir())
             best_val_acc = val_acc
+
+        if epoch == 0:
+            for m in model.resnet.parameters():
+                m.requires_grad_(True)
+            print('Fine tuning on')
+
     writer.close()
 
 
