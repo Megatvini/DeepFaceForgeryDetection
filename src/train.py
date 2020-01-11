@@ -54,7 +54,7 @@ def train(args):
     print('training on', device)
 
     # Build the models
-    model = Encoder2DConv3D().to(device)
+    model = Encoder2DConv3D(args.encoder_model_path).to(device)
     # for m in model.encoder2d.parameters():
     #     m.requires_grad_(False)
 
@@ -217,6 +217,7 @@ def main():
     parser.add_argument('--window_size', type=int, default=5)
     parser.add_argument('--max_videos', type=int, default=1000)
     parser.add_argument('--splits_path', type=str, default='../dataset/splits/')
+    parser.add_argument('--encoder_model_path', type=str, default='../cloud_models/Jan11_20-35-47_gpu-training/model.pt')
     args = parser.parse_args()
     train(args)
 

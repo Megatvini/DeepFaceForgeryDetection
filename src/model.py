@@ -2,15 +2,7 @@ import torchvision
 from torch import nn
 import resnet3d
 from facenet_pytorch import InceptionResnetV1
-
-
-class Lambda(nn.Module):
-    def __init__(self, fn):
-        super(Lambda, self).__init__()
-        self.fn = fn
-
-    def forward(self, x):
-        return self.fn(x)
+import torch
 
 
 class CNN_LSTM(nn.Module):
@@ -98,10 +90,14 @@ class FaceRecognitionCNN(nn.Module):
 
 
 class Encoder2DConv3D(nn.Module):
-    def __init__(self):
+    def __init__(self, face_recognition_cnn_path):
         super(Encoder2DConv3D, self).__init__()
-        resnet = InceptionResnetV1(pretrained='vggface2')
-        self.encoder2d = nn.Sequential(*list(resnet.children()))[:-10]
+
+        face_cnn = FaceRecognitionCNN()
+        state_dict = torch.load(face_recognition_cnn_path, map_location='cpu')
+        face_cnn.load_state_dict(state_dict)
+
+        self.encoder2d = nn.Sequential(*list(face_cnn.resnet.children()))[:-10]
         self.encoder3d = nn.Sequential(
             nn.Conv3d(256, 128, 3, padding=1, bias=False),
             nn.BatchNorm3d(128),
