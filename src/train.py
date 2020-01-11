@@ -26,12 +26,12 @@ def train(args):
         fixed_image_standardization
     ])
 
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.485, 0.456, 0.406),
-                             (0.229, 0.224, 0.225))
-    ])
+    # transform = transforms.Compose([
+    #     transforms.Resize((224, 224)),
+    #     transforms.ToTensor(),
+    #     transforms.Normalize((0.485, 0.456, 0.406),
+    #                          (0.229, 0.224, 0.225))
+    # ])
 
     train_dataset, val_dataset = read_dataset(
         args.original_image_dir, args.tampered_image_dir, transform=transform,
@@ -55,6 +55,8 @@ def train(args):
 
     # Build the models
     model = Encoder2DConv3D().to(device)
+    # for m in model.encoder2d.parameters():
+    #     m.requires_grad_(False)
 
     input_shape = next(iter(train_loader))[1].shape
     print('input shape', input_shape)
@@ -78,7 +80,7 @@ def train(args):
     # Train the models
     total_step = len(train_loader)
     step = 1
-    best_val_acc = 50.0
+    best_val_acc = 0.5
     for epoch in range(args.num_epochs):
         for i, (video_ids, images, targets) in enumerate(train_loader):
             model.train()
@@ -109,6 +111,11 @@ def train(args):
         if val_acc > best_val_acc:
             save_model_checkpoint(args, epoch, model, val_acc, writer.get_logdir())
             best_val_acc = val_acc
+
+        # if epoch == 0:
+        #     for m in model.encoder2d.parameters():
+        #         m.requires_grad_(True)
+        #     print('Fine tuning on')
 
     writer.close()
 

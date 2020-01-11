@@ -100,8 +100,8 @@ class FaceRecognitionCNN(nn.Module):
 class Encoder2DConv3D(nn.Module):
     def __init__(self):
         super(Encoder2DConv3D, self).__init__()
-        resnet = torchvision.models.resnet18(pretrained=True)
-        self.encoder2d = nn.Sequential(*list(resnet.children())[:-3])
+        resnet = InceptionResnetV1(pretrained='vggface2')
+        self.encoder2d = nn.Sequential(*list(resnet.children()))[:-10]
         self.encoder3d = nn.Sequential(
             nn.Conv3d(256, 128, 3, padding=1, bias=False),
             nn.BatchNorm3d(128),
@@ -121,7 +121,7 @@ class Encoder2DConv3D(nn.Module):
         images = images.permute(0, 2, 1, 3, 4)
         images = images.reshape(batch_size * depth, num_channels, height, width)
         out = self.encoder2d(images)
-        out = out.reshape(batch_size, depth, 256, 14, 14)
+        out = out.reshape(batch_size, depth, 256, 17, 17)
         out = out.permute(0, 2, 1, 3, 4)
         out = self.encoder3d(out)
         return out.squeeze()
