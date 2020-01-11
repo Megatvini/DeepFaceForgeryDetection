@@ -9,7 +9,7 @@ from torchvision import transforms
 import numpy as np
 
 from data_loader import get_loader, read_dataset
-from model import FaceRecognitionCNN
+from model import Encoder2DConv3D
 from utils import write_json, copy_file, summary
 from facenet_pytorch import fixed_image_standardization
 
@@ -24,6 +24,13 @@ def train(args):
         np.float32,
         transforms.ToTensor(),
         fixed_image_standardization
+    ])
+
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.485, 0.456, 0.406),
+                             (0.229, 0.224, 0.225))
     ])
 
     train_dataset, val_dataset = read_dataset(
@@ -47,9 +54,7 @@ def train(args):
     print('training on', device)
 
     # Build the models
-    model = FaceRecognitionCNN().to(device)
-    for m in model.resnet.parameters():
-        m.requires_grad_(False)
+    model = Encoder2DConv3D().to(device)
 
     input_shape = next(iter(train_loader))[1].shape
     print('input shape', input_shape)
@@ -73,7 +78,7 @@ def train(args):
     # Train the models
     total_step = len(train_loader)
     step = 1
-    best_val_acc = 0.0
+    best_val_acc = 50.0
     for epoch in range(args.num_epochs):
         for i, (video_ids, images, targets) in enumerate(train_loader):
             model.train()
@@ -104,11 +109,6 @@ def train(args):
         if val_acc > best_val_acc:
             save_model_checkpoint(args, epoch, model, val_acc, writer.get_logdir())
             best_val_acc = val_acc
-
-        if epoch == 0:
-            for m in model.resnet.parameters():
-                m.requires_grad_(True)
-            print('Fine tuning on')
 
     writer.close()
 

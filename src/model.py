@@ -1,6 +1,6 @@
 import torchvision
 from torch import nn
-from resnet3d import resnet10
+import resnet3d
 from facenet_pytorch import InceptionResnetV1
 
 
@@ -44,7 +44,7 @@ class CNN_LSTM(nn.Module):
 class ResNet3d(nn.Module):
     def __init__(self):
         super(ResNet3d, self).__init__()
-        self.model = resnet10(num_classes=1)
+        self.model = resnet3d.resnet10(num_classes=1)
 
     def forward(self, images):
         return self.model(images).squeeze()
@@ -97,29 +97,35 @@ class FaceRecognitionCNN(nn.Module):
         return out.squeeze()
 
 
-class Custom3DModel(nn.Module):
+class Encoder2DConv3D(nn.Module):
     def __init__(self):
-        super(Custom3DModel, self).__init__()
-        self.model = nn.Sequential(
-            nn.Conv3d(3, 16, 7, padding=3, bias=False),
-            nn.BatchNorm3d(16),
-            nn.ReLU(),
-            nn.Conv3d(16, 32, 3, padding=1, stride=2, bias=False),
-            nn.BatchNorm3d(32),
-            nn.ReLU(),
-            nn.Conv3d(32, 64, 3, padding=1, stride=2, bias=False),
-            nn.BatchNorm3d(64),
+        super(Encoder2DConv3D, self).__init__()
+        resnet = torchvision.models.resnet18(pretrained=True)
+        self.encoder2d = nn.Sequential(*list(resnet.children())[:-2])
+        self.encoder3d = nn.Sequential(
+            nn.Conv3d(512, 256, 3, padding=1, bias=False),
+            nn.BatchNorm3d(256),
             nn.ReLU(),
 
-            nn.Conv3d(64, 128, 3, padding=1, stride=2, bias=False),
+            nn.Conv3d(256, 128, 3, padding=1, bias=False),
             nn.BatchNorm3d(128),
             nn.ReLU(),
 
-            nn.AdaptiveAvgPool3d((1, 1, 1)),
+            nn.Conv3d(128, 64, 3, padding=1, bias=False),
+            nn.BatchNorm3d(64),
+            nn.ReLU(),
+
+            nn.AdaptiveAvgPool3d(1),
             nn.Flatten(),
-            nn.Linear(128, 1)
+            nn.Linear(64, 1)
         )
 
     def forward(self, images):
-        out = self.model(images)
+        batch_size, num_channels, depth, height, width = images.shape
+        images = images.permute(0, 2, 1, 3, 4)
+        images = images.reshape(batch_size * depth, num_channels, height, width)
+        out = self.encoder2d(images)
+        out = out.reshape(batch_size, depth, 512, 7, 7)
+        out = out.permute(0, 2, 1, 3, 4)
+        out = self.encoder3d(out)
         return out.squeeze()
