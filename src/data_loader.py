@@ -55,7 +55,7 @@ class ImagesDataset(Dataset):
         return img['video_id'], image, target
 
     def __len__(self):
-        return len(self.image_paths) - self.window_size // 2 - 1
+        return len(self.image_paths) - self.window_size // 2
 
 
 def listdir_with_full_paths(dir_path):
