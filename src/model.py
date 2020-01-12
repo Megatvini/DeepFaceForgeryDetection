@@ -99,17 +99,18 @@ class Encoder2DConv3D(nn.Module):
 
         self.encoder2d = nn.Sequential(*list(face_cnn.resnet.children()))[:-10]
         self.encoder3d = nn.Sequential(
-            nn.Conv3d(256, 128, 3, padding=1, bias=False),
-            nn.BatchNorm3d(128),
+            nn.Conv3d(256, 256, 3, padding=1, bias=False),
+            nn.BatchNorm3d(256),
             nn.ReLU(),
 
-            nn.Conv3d(128, 64, 3, padding=1, bias=False),
-            nn.BatchNorm3d(64),
+            nn.Conv3d(256, 512, 3, padding=1, bias=False),
+            nn.BatchNorm3d(512),
             nn.ReLU(),
 
             nn.AdaptiveAvgPool3d(1),
             nn.Flatten(),
-            nn.Linear(64, 1)
+            nn.Dropout(0.5),
+            nn.Linear(512, 1)
         )
 
     def forward(self, images):
