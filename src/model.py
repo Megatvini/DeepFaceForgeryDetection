@@ -6,20 +6,20 @@ import torch
 
 
 class CNN_LSTM(nn.Module):
-    def __init__(self, image_encoding_size=128, hidden_size=128, pretrained_encoder=True):
+    def __init__(self, face_recognition_cnn_path, hidden_size=512):
         super(CNN_LSTM, self).__init__()
-        self.image_encoding_size = image_encoding_size
-        self.hidden_size = hidden_size
-        self.cnn_encoder = nn.Sequential(
-            torchvision.models.squeezenet1_1(pretrained=pretrained_encoder),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(1000, image_encoding_size)
-        )
+        image_encoding_size = 512
+
+        face_cnn = FaceRecognitionCNN()
+        state_dict = torch.load(face_recognition_cnn_path, map_location='cpu')
+        face_cnn.load_state_dict(state_dict)
+
+        self.cnn_encoder = face_cnn.resnet
         self.lstm = nn.LSTM(
             image_encoding_size, hidden_size, num_layers=1, bias=True, batch_first=True, bidirectional=True
         )
         self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.5)
         self.fc = nn.Linear(2*hidden_size, 1)
 
     def forward(self, images):
@@ -29,7 +29,7 @@ class CNN_LSTM(nn.Module):
         out, _ = self.lstm(image_encodings)
 
         mid_frame = out[:, depth // 2, :]
-        res = self.fc(self.droupout(self.relu(mid_frame)))
+        res = self.fc(self.dropout(self.relu(mid_frame)))
         return res.squeeze()
 
 

@@ -9,7 +9,7 @@ from torchvision import transforms
 import numpy as np
 
 from data_loader import get_loader, read_dataset
-from model import Encoder2DConv3D
+from model import CNN_LSTM
 from utils import write_json, copy_file, summary
 from facenet_pytorch import fixed_image_standardization
 
@@ -54,9 +54,9 @@ def train(args):
     print('training on', device)
 
     # Build the models
-    model = Encoder2DConv3D(args.encoder_model_path).to(device)
-    # for m in model.encoder2d.parameters():
-    #     m.requires_grad_(False)
+    model = CNN_LSTM(args.encoder_model_path).to(device)
+    for m in model.cnn_encoder.parameters():
+        m.requires_grad_(False)
 
     input_shape = next(iter(train_loader))[1].shape
     print('input shape', input_shape)
@@ -113,7 +113,7 @@ def train(args):
             best_val_acc = val_acc
 
         # if epoch == 0:
-        #     for m in model.encoder2d.parameters():
+        #     for m in model.cnn_encoder.parameters():
         #         m.requires_grad_(True)
         #     print('Fine tuning on')
 
@@ -217,7 +217,7 @@ def main():
     parser.add_argument('--window_size', type=int, default=5)
     parser.add_argument('--max_videos', type=int, default=1000)
     parser.add_argument('--splits_path', type=str, default='../dataset/splits/')
-    parser.add_argument('--encoder_model_path', type=str, default='../cloud_models/Jan11_20-35-47_gpu-training/model.pt')
+    parser.add_argument('--encoder_model_path', type=str, default='models/Jan11_20-35-47_gpu-training/model.pt')
     args = parser.parse_args()
     train(args)
 
