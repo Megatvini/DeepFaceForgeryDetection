@@ -26,7 +26,7 @@ class CNN_LSTM(nn.Module):
 
         self.cnn_encoder = face_cnn.resnet
         self.lstm = nn.LSTM(
-            image_encoding_size, hidden_size, num_layers=1, bias=True, batch_first=True, bidirectional=True,
+            image_encoding_size, hidden_size, num_layers=2, bias=True, batch_first=True, bidirectional=True,
             dropout=0.5
         )
         self.relu = nn.ReLU()
