@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from data_loader import get_loader, read_dataset
 from model import CNN_LSTM
-from utils import write_json, copy_file, summary
+from utils import write_json, copy_file, summary, count_parameters
 
 
 def train(args):
@@ -64,6 +64,7 @@ def train(args):
     # need to call this before summary!!!
     model.eval()
     summary(model, input_shape[1:], batch_size=input_shape[0], device=device)
+    print(count_parameters(model))
 
     # Loss and optimizer
     criterion = nn.BCEWithLogitsLoss()

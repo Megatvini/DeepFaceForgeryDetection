@@ -1,12 +1,22 @@
-import torchvision
-from torch import nn
-import resnet3d
-from facenet_pytorch import InceptionResnetV1
 import torch
+import torchvision
+from facenet_pytorch import InceptionResnetV1
+from torch import nn
+
+import resnet3d
+
+
+class NNLambda(nn.Module):
+    def __init__(self, fn) -> None:
+        super().__init__()
+        self.fn = fn
+
+    def forward(self, x):
+        return self.fn(x)
 
 
 class CNN_LSTM(nn.Module):
-    def __init__(self, face_recognition_cnn_path, hidden_size=512):
+    def __init__(self, face_recognition_cnn_path, hidden_size=256):
         super(CNN_LSTM, self).__init__()
         image_encoding_size = 512
 
@@ -16,7 +26,8 @@ class CNN_LSTM(nn.Module):
 
         self.cnn_encoder = face_cnn.resnet
         self.lstm = nn.LSTM(
-            image_encoding_size, hidden_size, num_layers=2, bias=True, batch_first=True, bidirectional=True
+            image_encoding_size, hidden_size, num_layers=1, bias=True, batch_first=True, bidirectional=True,
+            dropout=0.5
         )
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.5)

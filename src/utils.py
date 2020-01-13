@@ -19,7 +19,6 @@ def copy_file(src_path, dest_path):
 
 def summary(model, input_size, batch_size=-1, device=torch.device('cuda:0'), dtypes=None):
     def get_shape(output):
-        shape = []
         if isinstance(output, (list, tuple)):
             shape = [get_shape(o) for o in output]
         else:
@@ -40,6 +39,9 @@ def summary(model, input_size, batch_size=-1, device=torch.device('cuda:0'), dty
             class_name = str(module.__class__).split(".")[-1].split("'")[0]
             module_idx = len(summary)
 
+            if class_name in ('InceptionResnetV1', 'CNN_LSTM'):
+                return
+
             m_key = "%s-%i" % (class_name, module_idx + 1)
             summary[m_key] = OrderedDict()
             summary[m_key]["input_shape"] = list(input[0].size())
@@ -50,12 +52,7 @@ def summary(model, input_size, batch_size=-1, device=torch.device('cuda:0'), dty
                 summary[m_key]["output_shape"] = list(output.size())
                 summary[m_key]["output_shape"][0] = batch_size
 
-            params = 0
-            if hasattr(module, "weight") and hasattr(module.weight, "size"):
-                params += torch.prod(torch.LongTensor(list(module.weight.size())))
-                summary[m_key]["trainable"] = module.weight.requires_grad
-            if hasattr(module, "bias") and hasattr(module.bias, "size"):
-                params += torch.prod(torch.LongTensor(list(module.bias.size())))
+            params = sum([m.numel() for m in module.parameters()])
             summary[m_key]["nb_params"] = params
 
         if (
@@ -67,7 +64,6 @@ def summary(model, input_size, batch_size=-1, device=torch.device('cuda:0'), dty
     # multiple inputs to the network
     if isinstance(input_size, tuple):
         input_size = [input_size]
-
 
     # batch_size of 2 for batchnorm
     x = [ torch.rand(2, *in_size).type(dtype).to(device=device) for in_size, dtype in zip(input_size, dtypes)]
@@ -91,9 +87,8 @@ def summary(model, input_size, batch_size=-1, device=torch.device('cuda:0'), dty
     line_new = "{:>20}  {:>25} {:>15}".format("Layer (type)", "Output Shape", "Param #")
     print(line_new)
     print("================================================================")
-    total_params = 0
+    trainable_params, total_params  = count_parameters(model)
     total_output = 0
-    trainable_params = 0
     for layer in summary:
         # input_shape, output_shape, trainable, nb_params
         output_shape = summary[layer]["output_shape"]
@@ -102,12 +97,8 @@ def summary(model, input_size, batch_size=-1, device=torch.device('cuda:0'), dty
             str(output_shape),
             "{0:,}".format(summary[layer]["nb_params"]),
         )
-        total_params += summary[layer]["nb_params"]
 
-        total_output += np.prod(output_shape[0] if isinstance(output_shape[0], list) else output_shape )
-        if "trainable" in summary[layer]:
-            if summary[layer]["trainable"] == True:
-                trainable_params += summary[layer]["nb_params"]
+        total_output += np.prod(output_shape[0] if isinstance(output_shape[0], list) else output_shape)
         print(line_new)
 
     # assume 4 bytes/number (float on cuda).
@@ -128,3 +119,9 @@ def summary(model, input_size, batch_size=-1, device=torch.device('cuda:0'), dty
     print("----------------------------------------------------------------")
     # return summary
     return total_params, trainable_params
+
+
+def count_parameters(model):
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total = sum(p.numel() for p in model.parameters())
+    return trainable, total
