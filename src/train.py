@@ -2,16 +2,17 @@ import argparse
 import os
 from datetime import datetime
 
+import numpy as np
 import torch
 import torch.nn as nn
+from facenet_pytorch import fixed_image_standardization
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
-import numpy as np
+from tqdm import tqdm
 
 from data_loader import get_loader, read_dataset
 from model import CNN_LSTM
 from utils import write_json, copy_file, summary
-from facenet_pytorch import fixed_image_standardization
 
 
 def train(args):
@@ -60,6 +61,8 @@ def train(args):
 
     input_shape = next(iter(train_loader))[1].shape
     print('input shape', input_shape)
+    # need to call this before summary!!!
+    model.eval()
     summary(model, input_shape[1:], batch_size=input_shape[0], device=device)
 
     # Loss and optimizer
@@ -162,7 +165,7 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, st
         total_predictions = 0
 
         misclassified_video_ids = set()
-        for video_ids, images, targets in val_loader:
+        for video_ids, images, targets in tqdm(val_loader):
             images = images.to(device)
             targets = targets.to(device)
 
@@ -172,13 +175,15 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, st
 
             predictions = outputs > 0.0
             true_preds = targets.eq(predictions)
-            correct_predictions += int(true_preds.sum().cpu())
+            correct_predictions += true_preds.sum().item()
             misclassified_video_ids.update(video_ids[~true_preds].tolist())
             total_predictions += len(images)
             if args.debug:
                 print(outputs)
                 print(predictions)
                 print(targets)
+                val_accuracy = correct_predictions / total_predictions
+                print(val_accuracy)
 
         val_loss = sum(loss_values) / len(loss_values)
         val_accuracy = correct_predictions / total_predictions
@@ -217,7 +222,7 @@ def main():
     parser.add_argument('--window_size', type=int, default=5)
     parser.add_argument('--max_videos', type=int, default=1000)
     parser.add_argument('--splits_path', type=str, default='../dataset/splits/')
-    parser.add_argument('--encoder_model_path', type=str, default='models/Jan11_20-35-47_gpu-training/model.pt')
+    parser.add_argument('--encoder_model_path', type=str, default='models/Jan12_10-57-19_gpu-training/model.pt')
     args = parser.parse_args()
     train(args)
 
