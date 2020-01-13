@@ -97,7 +97,7 @@ class Encoder2DConv3D(nn.Module):
         state_dict = torch.load(face_recognition_cnn_path, map_location='cpu')
         face_cnn.load_state_dict(state_dict)
 
-        self.encoder2d = nn.Sequential(*list(face_cnn.resnet.children()))[:-10]
+        self.cnn_encoder = nn.Sequential(*list(face_cnn.resnet.children()))[:-10]
         self.encoder3d = nn.Sequential(
             nn.Conv3d(256, 256, 3, padding=1, bias=False),
             nn.BatchNorm3d(256),
@@ -117,7 +117,7 @@ class Encoder2DConv3D(nn.Module):
         batch_size, num_channels, depth, height, width = images.shape
         images = images.permute(0, 2, 1, 3, 4)
         images = images.reshape(batch_size * depth, num_channels, height, width)
-        out = self.encoder2d(images)
+        out = self.cnn_encoder(images)
         out = out.reshape(batch_size, depth, 256, 17, 17)
         out = out.permute(0, 2, 1, 3, 4)
         out = self.encoder3d(out)
