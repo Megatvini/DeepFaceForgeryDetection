@@ -97,20 +97,27 @@ class Encoder2DConv3D(nn.Module):
         state_dict = torch.load(face_recognition_cnn_path, map_location='cpu')
         face_cnn.load_state_dict(state_dict)
 
-        self.cnn_encoder = nn.Sequential(*list(face_cnn.resnet.children()))[:-10]
+        self.cnn_encoder = nn.Sequential(*list(face_cnn.resnet.children()))[:-12]
         self.encoder3d = nn.Sequential(
+            nn.Conv3d(192, 192, 3, padding=1, bias=False),
+            nn.BatchNorm3d(192),
+            nn.ReLU(),
+            nn.MaxPool3d((2, 2, 2)),
+
+            nn.Conv3d(192, 256, 3, padding=1, bias=False),
+            nn.BatchNorm3d(256),
+            nn.ReLU(),
+            nn.MaxPool3d((2, 2, 2)),
+
             nn.Conv3d(256, 256, 3, padding=1, bias=False),
             nn.BatchNorm3d(256),
             nn.ReLU(),
-
-            nn.Conv3d(256, 512, 3, padding=1, bias=False),
-            nn.BatchNorm3d(512),
-            nn.ReLU(),
+            nn.MaxPool3d((1, 2, 2)),
 
             nn.AdaptiveAvgPool3d(1),
             nn.Flatten(),
             nn.Dropout(0.5),
-            nn.Linear(512, 1)
+            nn.Linear(256, 1)
         )
 
     def forward(self, images):
@@ -118,7 +125,7 @@ class Encoder2DConv3D(nn.Module):
         images = images.permute(0, 2, 1, 3, 4)
         images = images.reshape(batch_size * depth, num_channels, height, width)
         out = self.cnn_encoder(images)
-        out = out.reshape(batch_size, depth, 256, 17, 17)
+        out = out.reshape(batch_size, depth, 192, 36, 36)
         out = out.permute(0, 2, 1, 3, 4)
         out = self.encoder3d(out)
         return out.squeeze()
