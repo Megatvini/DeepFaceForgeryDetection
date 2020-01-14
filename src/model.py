@@ -16,31 +16,40 @@ class NNLambda(nn.Module):
 
 
 class CNN_LSTM(nn.Module):
-    def __init__(self, face_recognition_cnn_path, hidden_size=256):
+    def __init__(self, face_recognition_cnn_path, hidden_size=64):
         super(CNN_LSTM, self).__init__()
-        image_encoding_size = 512
+        image_encoding_size = 64
 
         face_cnn = FaceRecognitionCNN()
         state_dict = torch.load(face_recognition_cnn_path, map_location='cpu')
         face_cnn.load_state_dict(state_dict)
 
         self.cnn_encoder = face_cnn.resnet
+        self.img_encoder_fc = nn.Linear(512, image_encoding_size)
+        self.relu1 = nn.ReLU()
+        self.dropout1 = nn.Dropout(0.5)
         self.lstm = nn.LSTM(
             image_encoding_size, hidden_size, num_layers=2, bias=True, batch_first=True, bidirectional=True,
             dropout=0.5
         )
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.5)
+        self.relu2 = nn.ReLU()
+        self.dropout2 = nn.Dropout(0.5)
         self.fc = nn.Linear(2*hidden_size, 1)
 
     def forward(self, images):
         batch_size, num_channels, depth, height, width = images.shape
         inp = images.permute(0, 2, 1, 3, 4).reshape(batch_size * depth, num_channels, height, width)
+
         image_encodings = self.cnn_encoder(inp).reshape(batch_size, depth, -1)
+        image_encodings = self.img_encoder_fc(image_encodings)
+        image_encodings = self.relu1(image_encodings)
+        image_encodings = self.dropout1(image_encodings)
+
         out, _ = self.lstm(image_encodings)
 
         mid_out = out[:, depth // 2, :]
-        res = self.fc(self.dropout(self.relu(mid_out)))
+
+        res = self.fc(mid_out)
         return res.squeeze()
 
 
