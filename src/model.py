@@ -23,29 +23,42 @@ class CNN_LSTM(nn.Module):
         face_cnn = FaceRecognitionCNN()
         state_dict = torch.load(face_recognition_cnn_path, map_location='cpu')
         face_cnn.load_state_dict(state_dict)
+        face_cnn = nn.Sequential(*list(face_cnn.resnet.children()))[:-12]
 
-        self.cnn_encoder = face_cnn.resnet
-        self.img_encoder_fc = nn.Linear(512, image_encoding_size)
+        for p in face_cnn.parameters():
+            p.requires_grad_(False)
+
+        self.cnn_encoder = nn.Sequential(
+            face_cnn,
+
+            nn.Conv2d(192, 128, 5, bias=False),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+
+            nn.Conv2d(128, image_encoding_size, 5, bias=False),
+            nn.BatchNorm2d(image_encoding_size),
+            nn.ReLU(),
+
+            nn.AdaptiveAvgPool2d(1)
+        )
+
         self.relu1 = nn.ReLU()
         self.dropout1 = nn.Dropout(0.5)
         self.lstm = nn.LSTM(
-            image_encoding_size, hidden_size, num_layers=2, bias=True, batch_first=True, bidirectional=True,
-            dropout=0.5
+            image_encoding_size, hidden_size, num_layers=2, bias=True,
+            batch_first=True, bidirectional=True, dropout=0.5
         )
-        self.relu2 = nn.ReLU()
-        self.dropout2 = nn.Dropout(0.5)
         self.fc = nn.Linear(2*hidden_size, 1)
 
     def forward(self, images):
         batch_size, num_channels, depth, height, width = images.shape
         inp = images.permute(0, 2, 1, 3, 4).reshape(batch_size * depth, num_channels, height, width)
 
-        image_encodings = self.cnn_encoder(inp).reshape(batch_size, depth, -1)
-        image_encodings = self.img_encoder_fc(image_encodings)
-        image_encodings = self.relu1(image_encodings)
-        image_encodings = self.dropout1(image_encodings)
+        inp = self.cnn_encoder(inp).reshape(batch_size, depth, -1)
+        inp = self.relu1(inp)
+        inp = self.dropout1(inp)
 
-        out, _ = self.lstm(image_encodings)
+        out, _ = self.lstm(inp)
 
         mid_out = out[:, depth // 2, :]
 

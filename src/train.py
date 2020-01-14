@@ -56,8 +56,8 @@ def train(args):
 
     # Build the models
     model = CNN_LSTM(args.encoder_model_path).to(device)
-    for m in model.cnn_encoder.parameters():
-        m.requires_grad_(False)
+    # for m in model.cnn_encoder.parameters():
+    #     m.requires_grad_(False)
 
     input_shape = next(iter(train_loader))[1].shape
     print('input shape', input_shape)
