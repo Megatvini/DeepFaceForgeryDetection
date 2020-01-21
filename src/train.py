@@ -11,7 +11,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from data_loader import get_loader, read_dataset
-from model import CNN_LSTM
+from model import Encoder2DConv3D
 from utils import write_json, copy_file, summary, count_parameters
 
 
@@ -55,9 +55,9 @@ def train(args):
     print('training on', device)
 
     # Build the models
-    model = CNN_LSTM(args.encoder_model_path).to(device)
-    # for m in model.cnn_encoder.parameters():
-    #     m.requires_grad_(False)
+    model = Encoder2DConv3D(args.encoder_model_path).to(device)
+    for m in model.cnn_encoder.parameters():
+        m.requires_grad_(False)
 
     input_shape = next(iter(train_loader))[1].shape
     print('input shape', input_shape)
@@ -125,10 +125,10 @@ def train(args):
 
         now = datetime.now()
 
-        # if epoch == 0:
-        #     for m in model.cnn_encoder.parameters():
-        #         m.requires_grad_(True)
-        #     print('Fine tuning on')
+        if epoch == 0:
+            for m in model.cnn_encoder.parameters():
+                m.requires_grad_(True)
+            print('Fine tuning on')
 
     writer.close()
 
