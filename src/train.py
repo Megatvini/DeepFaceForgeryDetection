@@ -11,7 +11,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from data_loader import get_loader, read_dataset
-from model import Encoder2DConv3D
+from model import FaceRecognitionCNN
 from utils import write_json, copy_file, summary, count_parameters
 
 
@@ -55,8 +55,8 @@ def train(args):
     print('training on', device)
 
     # Build the models
-    model = Encoder2DConv3D(args.encoder_model_path).to(device)
-    for m in model.cnn_encoder.parameters():
+    model = FaceRecognitionCNN().to(device)
+    for m in model.resnet.parameters():
         m.requires_grad_(False)
 
     input_shape = next(iter(train_loader))[1].shape
@@ -126,7 +126,7 @@ def train(args):
         now = datetime.now()
 
         if epoch == 0:
-            for m in model.cnn_encoder.parameters():
+            for m in model.resnet.parameters():
                 m.requires_grad_(True)
             print('Fine tuning on')
 
@@ -230,7 +230,7 @@ def main():
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--learning_rate', type=float, default=0.00001)
     parser.add_argument('--patience', type=int, default=2)
-    parser.add_argument('--window_size', type=int, default=5)
+    parser.add_argument('--window_size', type=int, default=1)
     parser.add_argument('--max_videos', type=int, default=1000)
     parser.add_argument('--splits_path', type=str, default='../dataset/splits/')
     parser.add_argument('--encoder_model_path', type=str, default='models/Jan12_10-57-19_gpu-training/model.pt')
