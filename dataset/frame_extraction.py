@@ -1,89 +1,28 @@
 import argparse
 import os
-from concurrent.futures import ProcessPoolExecutor
 from os.path import join
 
 import cv2
-import dlib
+import mmcv
+import torch
+from PIL import Image
+from facenet_pytorch import MTCNN
 from tqdm import tqdm
 
-face_detector = dlib.get_frontal_face_detector()
 
-
-# generates a quadratic bounding box
-# source: https://github.com/ondyari/FaceForensics/blob/master/classification/detect_from_video.py
-def get_boundingbox(face, width, height, scale=1.3, minsize=None):
-    """
-    Expects a dlib face to generate a quadratic bounding box.
-    :param face: dlib face class
-    :param width: frame width
-    :param height: frame height
-    :param scale: bounding box size multiplier to get a bigger face region
-    :param minsize: set minimum bounding box size
-    :return: x, y, bounding_box_size in opencv form
-    """
-    x1 = face.left()
-    y1 = face.top()
-    x2 = face.right()
-    y2 = face.bottom()
-    size_bb = int(max(x2 - x1, y2 - y1) * scale)
-    if minsize:
-        if size_bb < minsize:
-            size_bb = minsize
-    center_x, center_y = (x1 + x2) // 2, (y1 + y2) // 2
-
-    # Check for out of bounds, x-y top left corner
-    x1 = max(int(center_x - size_bb // 2), 0)
-    y1 = max(int(center_y - size_bb // 2), 0)
-    # Check for too big bb size for given x, y
-    size_bb = min(width - x1, size_bb)
-    size_bb = min(height - y1, size_bb)
-
-    return x1, y1, size_bb
-
-
-def crop_image(image, face, scale=1.3):
-    img_height, img_width, _ = image.shape
-    x, y, size = get_boundingbox(face, img_width, img_height, scale=scale)
-
-    # generate cropped image
-    cropped_face = image[y:y + size, x:x + size]
-    return cropped_face
-
-
-def extract_face(image):
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    detections, *_ = face_detector.run(gray_image, 1, -1)
-    if len(detections) == 0:
-        return None
-
-    d = detections[0]
-    return crop_image(image, d)
-
-
-def extract_frames(inp):
-    data_path, output_path, file_prefix = inp
-
+def extract_frames(face_detector, data_path, output_path, file_prefix):
     os.makedirs(output_path, exist_ok=True)
-    reader = cv2.VideoCapture(data_path)
-    length = int(reader.get(cv2.CAP_PROP_FRAME_COUNT))
-    frame_num = 0
-    while reader.isOpened():
-        success, image = reader.read()
-        if not success:
-            break
-        face_image = extract_face(image)
-        out_file_path = join(output_path, '{}{:04d}.jpg'.format(file_prefix, frame_num))
-        if face_image is not None:
-            cv2.imwrite(out_file_path, face_image)
-        else:
-            print('no face found, so skipping {}'.format(out_file_path))
-        frame_num += 1
-    reader.release()
+    video = mmcv.VideoReader(data_path)
+    length = video.frame_cnt
+    for frame_num, frame in enumerate(video):
+        image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        out_file_path = join(output_path, '{}{:04d}.png'.format(file_prefix, frame_num))
+        face_detector(image, save_path=out_file_path)
+        print(frame_num)
     return length
 
 
-def extract_images(videos_path, out_path, num_videos):
+def extract_images(device, videos_path, out_path, num_videos):
     print('extracting video frames from {} to {}'.format(videos_path, out_path))
 
     video_files = os.listdir(videos_path)
@@ -98,9 +37,11 @@ def extract_images(videos_path, out_path, num_videos):
             f_prefix = '{}_'.format(video_file_name)
             yield v_path, v_out_path, f_prefix
 
-    executor = ProcessPoolExecutor()
-    results = list(tqdm(executor.map(extract_frames, get_video_input_output_pairs()), total=len(video_files)))
-    print('total frames extracted: ', sum(results))
+    face_detector = MTCNN(device=device, margin=16)
+    face_detector.eval()
+
+    for data_path, output_path, file_prefix in tqdm(get_video_input_output_pairs(), total=len(video_files)):
+        extract_frames(face_detector, data_path, output_path, file_prefix)
 
 
 def parse_args():
@@ -113,11 +54,14 @@ def parse_args():
 
 
 def main():
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Running on device: {}'.format(device))
+
     args = parse_args()
     videos_path = args.path_to_videos
     out_path = args.output_path
     num_videos = args.num_videos
-    extract_images(videos_path, out_path, num_videos)
+    extract_images(device, videos_path, out_path, num_videos)
 
 
 if __name__ == '__main__':
