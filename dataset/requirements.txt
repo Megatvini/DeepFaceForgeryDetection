@@ -2,3 +2,5 @@ tqdm==4.36.1
 opencv-python==4.1.1.26
 facenet-pytorch==2.0.1
 mmcv==0.2.16
+requests==2.22.0
+requests-oauthlib==1.3.0

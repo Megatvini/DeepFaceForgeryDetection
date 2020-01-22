@@ -18,7 +18,6 @@ def extract_frames(face_detector, data_path, output_path, file_prefix):
         image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         out_file_path = join(output_path, '{}{:04d}.png'.format(file_prefix, frame_num))
         face_detector(image, save_path=out_file_path)
-        print(frame_num)
     return length
 
 
