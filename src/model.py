@@ -123,12 +123,13 @@ class FaceRecognitionCNN(nn.Module):
 
 
 class Encoder2DConv3D(nn.Module):
-    def __init__(self, face_recognition_cnn_path):
+    def __init__(self, face_recognition_cnn_path=None):
         super(Encoder2DConv3D, self).__init__()
 
         face_cnn = FaceRecognitionCNN()
-        state_dict = torch.load(face_recognition_cnn_path, map_location='cpu')
-        face_cnn.load_state_dict(state_dict)
+        if face_recognition_cnn_path is not None:
+            state_dict = torch.load(face_recognition_cnn_path, map_location='cpu')
+            face_cnn.load_state_dict(state_dict)
 
         self.cnn_encoder = nn.Sequential(*list(face_cnn.resnet.children()))[:-11]
         self.encoder3d = nn.Sequential(
