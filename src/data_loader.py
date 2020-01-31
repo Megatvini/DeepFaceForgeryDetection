@@ -1,10 +1,11 @@
+import json
 import os
 import random
 
 import torch
 from PIL import Image, ImageFile
+from torch import tensor
 from torch.utils.data import Dataset
-import json
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -31,28 +32,31 @@ class ImagesDataset(Dataset):
         video_id = get_file_name(video_dir)
         sorted_images_names = sorted(os.listdir(video_dir))[:self.max_images_per_video]
         for image_name in sorted_images_names:
+            frame_id = image_name.split('_')[-1].split('.')[0]
             self.image_paths.append({
-                'video_id': int(video_id),
+                'video_id': video_id,
+                'frame_id': frame_id,
                 'class': class_name,
                 'img_path': os.path.join(video_dir, image_name)
             })
 
     def __getitem__(self, index):
         data = [self._get_item(index + i) for i in range(-self.window_size//2 + 1, self.window_size//2 + 1)]
-        mid_video_id, mid_image, target = data[len(data)//2]
-        images = [x[1] if x[0] == mid_video_id else mid_image for x in data]
+        mid_video_id, mid_frame_id, mid_image, target = data[len(data)//2]
+        images = [x[2] if x[0] == mid_video_id else mid_image for x in data]
         if self.window_size > 1:
-            return torch.tensor(mid_video_id), torch.stack(images).permute(1, 0, 2, 3), target
+            return tensor(mid_video_id), tensor(mid_frame_id), torch.stack(images).permute(1, 0, 2, 3), target
         else:
-            return mid_video_id, images[0], target
+            image_tensor = images[0]
+            return mid_video_id, mid_frame_id, image_tensor, target
 
     def _get_item(self, index):
         img = self.image_paths[index]
-        target = torch.tensor(0.0) if img['class'] == 'original' else torch.tensor(1.0)
+        target = tensor(0.0) if img['class'] == 'original' else tensor(1.0)
         image = Image.open(img['img_path'])
         if self.transform is not None:
             image = self.transform(image)
-        return img['video_id'], image, target
+        return img['video_id'], img['frame_id'], image, target
 
     def __len__(self):
         return len(self.image_paths) - self.window_size // 2

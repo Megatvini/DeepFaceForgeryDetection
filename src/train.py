@@ -56,10 +56,11 @@ def train(args):
 
     # Build the models
     model = FaceRecognitionCNN().to(device)
-    for m in model.resnet.parameters():
-        m.requires_grad_(False)
+    if args.freeze_first_epoch:
+        for m in model.resnet.parameters():
+            m.requires_grad_(False)
 
-    input_shape = next(iter(train_loader))[1].shape
+    input_shape = next(iter(train_loader))[2].shape
     print('input shape', input_shape)
     # need to call this before summary!!!
     model.eval()
@@ -80,13 +81,12 @@ def train(args):
     writer.add_hparams(args.__dict__, {})
     writer.add_text('model', str(model))
 
-    now = datetime.now()
     # Train the models
     total_step = len(train_loader)
     step = 1
     best_val_acc = 0.5
     for epoch in range(args.num_epochs):
-        for i, (video_ids, images, targets) in enumerate(train_loader):
+        for i, (video_ids, frame_ids, images, targets) in tqdm(enumerate(train_loader), desc=f'training epoch {epoch}'):
             model.train()
             # Set mini-batch dataset
             images = images.to(device)
@@ -101,20 +101,17 @@ def train(args):
 
             batch_accuracy = float((outputs > 0.0).eq(targets).sum()) / len(targets)
 
-            iteration_time = datetime.now() - now
             # Print log info
             step += 1
 
             if (i + 1) % args.log_step == 0:
-                print_training_info(args, batch_accuracy, epoch, i, iteration_time, loss, step, total_step, writer)
+                print_training_info(args, batch_accuracy, epoch, i, loss, step, total_step, writer)
 
             if (i + 1) % args.val_step == 0:
                 val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, step)
                 if val_acc > best_val_acc:
                     save_model_checkpoint(args, epoch, model, val_acc, writer.get_logdir())
                     best_val_acc = val_acc
-
-            now = datetime.now()
 
         # validation step after full epoch
         val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, step)
@@ -123,9 +120,7 @@ def train(args):
             save_model_checkpoint(args, epoch, model, val_acc, writer.get_logdir())
             best_val_acc = val_acc
 
-        now = datetime.now()
-
-        if epoch == 0:
+        if args.freeze_first_epoch and epoch == 0:
             for m in model.resnet.parameters():
                 m.requires_grad_(True)
             print('Fine tuning on')
@@ -156,11 +151,11 @@ def save_model_checkpoint(args, epoch, model, val_acc, writer_log_dir):
     print(f'New checkpoint saved at {model_path}')
 
 
-def print_training_info(args, batch_accuracy, epoch, i, iteration_time, loss, step, total_step, writer):
-    log_info = 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}, Iteration time: {}'.format(
-        epoch, args.num_epochs, i + 1, total_step, loss.item(), batch_accuracy, iteration_time
+def print_training_info(args, batch_accuracy, epoch, i, loss, step, total_step, writer):
+    log_info = 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}'.format(
+        epoch, args.num_epochs, i + 1, total_step, loss.item(), batch_accuracy
     )
-    print(log_info)
+    # print(log_info)
 
     writer.add_scalar('training loss', loss.item(), step)
     writer.add_scalar('training acc', batch_accuracy, step)
@@ -174,8 +169,7 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, st
         correct_predictions = 0
         total_predictions = 0
 
-        misclassified_video_ids = set()
-        for video_ids, images, targets in tqdm(val_loader):
+        for video_ids, frame_ids, images, targets in tqdm(val_loader):
             images = images.to(device)
             targets = targets.to(device)
 
@@ -186,7 +180,6 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, st
             predictions = outputs > 0.0
             true_preds = targets.eq(predictions)
             correct_predictions += true_preds.sum().item()
-            misclassified_video_ids.update(video_ids[~true_preds].tolist())
             total_predictions += len(images)
             if args.debug:
                 print(outputs)
@@ -200,8 +193,7 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, st
         validation_time = datetime.now() - now
 
         print(
-            'Validation - Loss: {:.3f}, Acc: {:.3f}, Time: {}, Total misclassified videos: {}'
-                .format(val_loss, val_accuracy, validation_time, len(misclassified_video_ids))
+            'Validation - Loss: {:.3f}, Acc: {:.3f}, Time: {}'.format(val_loss, val_accuracy, validation_time)
         )
         writer.add_scalar('validation loss', val_loss, step)
         writer.add_scalar('validation acc', val_accuracy, step)
@@ -234,6 +226,7 @@ def main():
     parser.add_argument('--max_videos', type=int, default=1000)
     parser.add_argument('--splits_path', type=str, default='../dataset/splits/')
     parser.add_argument('--encoder_model_path', type=str, default='models/Jan12_10-57-19_gpu-training/model.pt')
+    parser.add_argument('--freeze_first_epoch', type=bool, default=False)
     args = parser.parse_args()
     train(args)
 
