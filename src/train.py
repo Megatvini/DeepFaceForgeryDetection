@@ -86,7 +86,8 @@ def train(args):
     step = 1
     best_val_acc = 0.5
     for epoch in range(args.num_epochs):
-        for i, (video_ids, frame_ids, images, targets) in tqdm(enumerate(train_loader), desc=f'training epoch {epoch}'):
+        for i, (video_ids, frame_ids, images, targets) in \
+                tqdm(enumerate(train_loader), desc=f'training epoch {epoch}', total=len(train_loader)):
             model.train()
             # Set mini-batch dataset
             images = images.to(device)
