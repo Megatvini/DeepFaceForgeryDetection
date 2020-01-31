@@ -1,6 +1,5 @@
 import argparse
 import os
-from datetime import datetime
 
 import numpy as np
 import torch
@@ -40,7 +39,7 @@ def train(args):
         window_size=args.window_size, splits_path=args.splits_path
     )
 
-    print('train data size: {}, validation data size: {}'.format(len(train_dataset), len(val_dataset)))
+    tqdm.write('train data size: {}, validation data size: {}'.format(len(train_dataset), len(val_dataset)))
 
     # Build data loader
     train_loader = get_loader(
@@ -109,13 +108,13 @@ def train(args):
                 print_training_info(args, batch_accuracy, epoch, i, loss, step, total_step, writer)
 
             if (i + 1) % args.val_step == 0:
-                val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, step)
+                val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, epoch, step)
                 if val_acc > best_val_acc:
                     save_model_checkpoint(args, epoch, model, val_acc, writer.get_logdir())
                     best_val_acc = val_acc
 
         # validation step after full epoch
-        val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, step)
+        val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, epoch, step)
         lr_scheduler.step(val_acc)
         if val_acc > best_val_acc:
             save_model_checkpoint(args, epoch, model, val_acc, writer.get_logdir())
@@ -124,7 +123,7 @@ def train(args):
         if args.freeze_first_epoch and epoch == 0:
             for m in model.resnet.parameters():
                 m.requires_grad_(True)
-            print('Fine tuning on')
+            tqdm.write('Fine tuning on')
 
     writer.close()
 
@@ -149,28 +148,26 @@ def save_model_checkpoint(args, epoch, model, val_acc, writer_log_dir):
     dest_model_file = os.path.join(model_dir, 'model.py')
     copy_file(src_model_file, dest_model_file)
 
-    print(f'New checkpoint saved at {model_path}')
+    tqdm.write(f'New checkpoint saved at {model_path}')
 
 
 def print_training_info(args, batch_accuracy, epoch, i, loss, step, total_step, writer):
     log_info = 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}'.format(
         epoch, args.num_epochs, i + 1, total_step, loss.item(), batch_accuracy
     )
-    # print(log_info)
+    # tqdm.write(log_info)
 
     writer.add_scalar('training loss', loss.item(), step)
     writer.add_scalar('training acc', batch_accuracy, step)
 
 
-def print_validation_info(args, criterion, device, model, val_loader, writer, step):
-    now = datetime.now()
+def print_validation_info(args, criterion, device, model, val_loader, writer, epoch, step):
     model.eval()
     with torch.no_grad():
         loss_values = []
-        correct_predictions = 0
-        total_predictions = 0
-
-        for video_ids, frame_ids, images, targets in tqdm(val_loader):
+        all_predictions = []
+        all_targets = []
+        for video_ids, frame_ids, images, targets in tqdm(val_loader, desc=f'validation ep. {epoch}'):
             images = images.to(device)
             targets = targets.to(device)
 
@@ -179,25 +176,34 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, st
             loss_values.append(loss.item())
 
             predictions = outputs > 0.0
-            true_preds = targets.eq(predictions)
-            correct_predictions += true_preds.sum().item()
-            total_predictions += len(images)
+            all_predictions.append(predictions)
+            all_targets.append(targets)
             if args.debug:
-                print(outputs)
-                print(predictions)
-                print(targets)
-                val_accuracy = correct_predictions / total_predictions
-                print(val_accuracy)
+                tqdm.write(outputs)
+                tqdm.write(predictions)
+                tqdm.write(targets)
 
         val_loss = sum(loss_values) / len(loss_values)
-        val_accuracy = correct_predictions / total_predictions
-        validation_time = datetime.now() - now
 
-        print(
-            'Validation - Loss: {:.3f}, Acc: {:.3f}, Time: {}'.format(val_loss, val_accuracy, validation_time)
+        all_predictions = torch.cat(all_predictions).int()
+        all_targets = torch.cat(all_targets).int()
+        val_accuracy = (all_predictions == all_targets).sum().float().item() / all_targets.shape[0]
+
+        total_target_tampered = all_targets.sum().float().item()
+        tampered_accuracy = (all_predictions * all_targets).sum() / total_target_tampered
+
+        total_target_pristine = (1 - all_targets).sum().float().item()
+        pristine_accuracy = (1 - (all_predictions | all_targets)).sum() / total_target_pristine
+
+        tqdm.write(
+            'Validation - Loss: {:.3f}, Acc: {:.3f}, Prs: {:.3f}, Tmp: {:.3f}'.format(
+                val_loss, val_accuracy, pristine_accuracy, tampered_accuracy
+            )
         )
         writer.add_scalar('validation loss', val_loss, step)
         writer.add_scalar('validation acc', val_accuracy, step)
+        writer.add_scalar('pristine acc', pristine_accuracy, step)
+        writer.add_scalar('tampered acc', tampered_accuracy, step)
     return val_accuracy
 
 
