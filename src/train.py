@@ -17,7 +17,7 @@ from utils import write_json, copy_file, summary, count_parameters
 
 def train(args):
     # show tensorboard graphs with following command: tensorboard --logdir =src/runs
-    writer = SummaryWriter()
+    writer = SummaryWriter(comment=args.comment)
 
     # Image preprocessing, normalization for the pretrained resnet
     transform = transforms.Compose([
@@ -227,6 +227,7 @@ def main():
     parser.add_argument('--splits_path', type=str, default='../dataset/splits/')
     parser.add_argument('--encoder_model_path', type=str, default='models/Jan12_10-57-19_gpu-training/model.pt')
     parser.add_argument('--freeze_first_epoch', type=bool, default=False)
+    parser.add_argument('--comment', type=str, default='')
     args = parser.parse_args()
     train(args)
 
