@@ -21,14 +21,19 @@ def read_training_dataset(args, transform):
         window_size=args.window_size, splits_path=args.splits_path
     )
     # only neural textures c40 and original c40
+    datasets = {
+        k: v for k, v in datasets.items() 
+        if ('original' in k or 'neural' in k) and 'c40' in k
+    }
+    print('Using training data: ')
+    print('\n'.join(datasets.keys()))
+
     trains, vals, tests = [], [], []
     for data_dir_name, dataset in datasets.items():
-        class_name, *_, compression_level = data_dir_name.split('_')
-        if 'original' in data_dir_name or 'neural' in data_dir_name and compression_level == 'c40':
-            train, val, test = dataset
-            trains.append(train)
-            vals.append(val)
-            tests.append(test)
+        train, val, test = dataset
+        trains.append(train)
+        vals.append(val)
+        tests.append(test)
     return CompositeDataset(*trains), CompositeDataset(*vals), CompositeDataset(*tests)
 
 
@@ -119,7 +124,7 @@ def run_train(args):
             step += 1
 
             if (i + 1) % args.log_step == 0:
-                print_training_info(args, batch_accuracy, epoch, i, loss, step, total_step, writer)
+                print_training_info(batch_accuracy, loss, step, writer)
 
             if (i + 1) % args.val_step == 0:
                 val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, epoch, step)
@@ -165,11 +170,9 @@ def save_model_checkpoint(args, epoch, model, val_acc, writer_log_dir):
     tqdm.write(f'New checkpoint saved at {model_path}')
 
 
-def print_training_info(args, batch_accuracy, epoch, i, loss, step, total_step, writer):
-    log_info = 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}'.format(
-        epoch, args.num_epochs, i + 1, total_step, loss.item(), batch_accuracy
-    )
-    # tqdm.write(log_info)
+def print_training_info(batch_accuracy, loss, step, writer):
+    log_info = 'Training - Loss: {:.4f}, Accuracy: {:.4f}'.format(loss.item(), batch_accuracy)
+    tqdm.write(log_info)
 
     writer.add_scalar('training loss', loss.item(), step)
     writer.add_scalar('training acc', batch_accuracy, step)
