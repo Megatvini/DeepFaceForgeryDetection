@@ -10,18 +10,31 @@ from torch.utils.data import Dataset
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
+class CompositeDataset(Dataset):
+    def __init__(self, *datasets) -> None:
+        super().__init__()
+        self.datasets = datasets
+
+    def __getitem__(self, index: int):
+        for d in self.datasets:
+            if index < len(d):
+                return d[index]
+            index -= len(d)
+
+    def __len__(self) -> int:
+        return sum(map(len, self.datasets))
+
+
 class ImagesDataset(Dataset):
-    def __init__(
-            self, original_video_dirs, tampered_video_dirs, max_images_per_video,
-            max_videos=1000, transform=None, window_size=5
-    ):
+    def __init__(self, video_dirs, name, target, max_images_per_video, max_videos, transform, window_size):
+        self.name = name
+        self.target = torch.tensor(target).float()
         self.max_images_per_video = max_images_per_video
         self.max_videos = max_videos
         self.image_paths = []
         self.transform = transform
         self.window_size = window_size
-        self._read_images(original_video_dirs, 'original')
-        self._read_images(tampered_video_dirs, 'tampered')
+        self._read_images(video_dirs, name)
         self.image_paths = sorted(self.image_paths, key=lambda x: x['img_path'])
 
     def _read_images(self, video_dirs, class_name):
@@ -52,7 +65,7 @@ class ImagesDataset(Dataset):
 
     def _get_item(self, index):
         img = self.image_paths[index]
-        target = tensor(0.0) if img['class'] == 'original' else tensor(1.0)
+        target = self.target
         image = Image.open(img['img_path'])
         if self.transform is not None:
             image = self.transform(image)
@@ -89,39 +102,31 @@ def get_video_ids(spl, splits_path):
     return get_sets(read_json(os.path.join(splits_path, f'{spl}.json')))
 
 
-def read_dataset(
-        original_data_dir, tampered_data_dir, transform=None, max_videos=1000, window_size=5,
-        max_images_per_video=40, splits_path='../dataset/splits/'
+def read_train_test_val_dataset(
+        dataset_dir, name, target, splits_path, **dataset_kwargs
 ):
-    original_video_dir_paths = listdir_with_full_paths(original_data_dir)
-    tampered_video_dir_paths = listdir_with_full_paths(tampered_data_dir)
+    for spl in ['train', 'val', 'test']:
+        video_ids = get_video_ids(spl, splits_path)
+        video_paths = listdir_with_full_paths(dataset_dir)
+        videos = [x for x in video_paths if get_file_name(x) in video_ids]
+        dataset = ImagesDataset(videos, name, target, **dataset_kwargs)
+        yield dataset
 
-    train_video_ids = get_video_ids('train', splits_path)
-    train_videos_original = [x for x in original_video_dir_paths if get_file_name(x) in train_video_ids]
-    train_videos_tampered = [x for x in tampered_video_dir_paths if get_file_name(x) in train_video_ids]
 
-    train_dataset = ImagesDataset(
-        train_videos_original, train_videos_tampered, max_images_per_video=max_images_per_video, transform=transform,
-        max_videos=max_videos, window_size=window_size
-    )
-
-    val_video_ids = get_video_ids('val', splits_path)
-    val_videos_original = [x for x in original_video_dir_paths if get_file_name(x) in val_video_ids]
-    val_videos_tampered = [x for x in tampered_video_dir_paths if get_file_name(x) in val_video_ids]
-    val_dataset = ImagesDataset(
-        val_videos_original, val_videos_tampered, max_images_per_video=max_images_per_video, transform=transform,
-        max_videos=max_videos, window_size=window_size
-    )
-
-    test_video_ids = get_video_ids('test', splits_path)
-    test_videos_original = [x for x in original_video_dir_paths if get_file_name(x) in test_video_ids]
-    test_videos_tampered = [x for x in tampered_video_dir_paths if get_file_name(x) in test_video_ids]
-    test_dataset = ImagesDataset(
-        test_videos_original, test_videos_tampered, max_images_per_video=max_images_per_video, transform=transform,
-        max_videos=max_videos, window_size=window_size
-    )
-
-    return train_dataset, val_dataset, test_dataset
+def read_dataset(
+        data_dir, transform, max_videos, window_size,
+        max_images_per_video, splits_path='../dataset/splits/'
+):
+    data_class_dirs = os.listdir(data_dir)
+    data_sets = {}
+    for data_class_dir in data_class_dirs:
+        data_class_dir_path = os.path.join(data_dir, data_class_dir)
+        target = 0 if 'original' in data_class_dir.lower() else 1
+        data_sets[data_class_dir] = read_train_test_val_dataset(
+            data_class_dir_path, data_class_dir, target, splits_path, transform=transform,
+            max_videos=max_videos, max_images_per_video=max_images_per_video, window_size=window_size
+        )
+    return data_sets
 
 
 def get_loader(dataset, batch_size, shuffle, num_workers):

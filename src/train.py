@@ -9,13 +9,31 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from tqdm import tqdm
 
-from data_loader import get_loader, read_dataset
+from data_loader import get_loader, read_dataset, CompositeDataset
 from model import FaceRecognitionCNN
 from utils import write_json, copy_file, summary, count_parameters
 
 
-def train(args):
-    # show tensorboard graphs with following command: tensorboard --logdir =src/runs
+def read_training_dataset(args, transform):
+    datasets = read_dataset(
+        args.data_dir, transform=transform,
+        max_images_per_video=args.max_images_per_video, max_videos=args.max_videos,
+        window_size=args.window_size, splits_path=args.splits_path
+    )
+    # only neural textures c40 and original c40
+    trains, vals, tests = [], [], []
+    for data_dir_name, dataset in datasets.items():
+        class_name, *_, compression_level = data_dir_name.split('_')
+        if 'original' in data_dir_name or 'neural' in data_dir_name and compression_level == 'c40':
+            train, val, test = dataset
+            trains.append(train)
+            vals.append(val)
+            tests.append(test)
+    return CompositeDataset(*trains), CompositeDataset(*vals), CompositeDataset(*tests)
+
+
+def run_train(args):
+    # show tensorboard graphs with following command: tensorboard --logdir=src/runs
     writer = SummaryWriter(comment=args.comment)
 
     # Image preprocessing, normalization for the pretrained resnet
@@ -33,11 +51,7 @@ def train(args):
     #                          (0.229, 0.224, 0.225))
     # ])
 
-    train_dataset, val_dataset, test_dataset = read_dataset(
-        args.original_image_dir, args.tampered_image_dir, transform=transform,
-        max_images_per_video=args.max_images_per_video, max_videos=args.max_videos,
-        window_size=args.window_size, splits_path=args.splits_path
-    )
+    train_dataset, val_dataset, test_dataset = read_training_dataset(args, transform)
 
     tqdm.write('train data size: {}, validation data size: {}'.format(len(train_dataset), len(val_dataset)))
 
@@ -210,14 +224,7 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, ep
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str, default='models/', help='path for saving trained models')
-    parser.add_argument(
-        '--original_image_dir', type=str, default='../dataset/images_tiny/original',
-        help='directory for original images'
-    )
-    parser.add_argument(
-        '--tampered_image_dir', type=str, default='../dataset/images_tiny/tampered',
-        help='directory for tampered images'
-    )
+    parser.add_argument('--data_dir', type=str, default='../dataset/images_tiny', help='directory for data with images')
     parser.add_argument('--log_step', type=int, default=10, help='step size for printing training log info')
     parser.add_argument('--val_step', type=int, default=100, help='step size for validation during epoch')
     parser.add_argument('--max_images_per_video', type=int, default=10, help='maximum images to use from one video')
@@ -236,7 +243,7 @@ def main():
     parser.add_argument('--freeze_first_epoch', type=bool, default=False)
     parser.add_argument('--comment', type=str, default='')
     args = parser.parse_args()
-    train(args)
+    run_train(args)
 
 
 if __name__ == '__main__':
