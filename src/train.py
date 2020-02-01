@@ -82,8 +82,8 @@ def run_train(args):
     print('input shape', input_shape)
     # need to call this before summary!!!
     model.eval()
-    summary(model, input_shape[1:], batch_size=input_shape[0], device=device)
-    print(count_parameters(model))
+    # summary(model, input_shape[1:], batch_size=input_shape[0], device=device)
+    print('model params (trainable, total):', count_parameters(model))
 
     # Loss and optimizer
     criterion = nn.BCEWithLogitsLoss()
