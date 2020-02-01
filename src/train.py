@@ -33,7 +33,7 @@ def train(args):
     #                          (0.229, 0.224, 0.225))
     # ])
 
-    train_dataset, val_dataset = read_dataset(
+    train_dataset, val_dataset, test_dataset = read_dataset(
         args.original_image_dir, args.tampered_image_dir, transform=transform,
         max_images_per_video=args.max_images_per_video, max_videos=args.max_videos,
         window_size=args.window_size, splits_path=args.splits_path

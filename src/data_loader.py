@@ -82,7 +82,7 @@ def read_json(file_path):
 
 
 def get_sets(data):
-    return {x[0] for x in data} | {x[1] for x in data} | {'_'.join(x) for x in data}
+    return {x[0] for x in data} | {x[1] for x in data} | {'_'.join(x) for x in data} | {'_'.join(x[::-1]) for x in data}
 
 
 def get_video_ids(spl, splits_path):
@@ -113,7 +113,15 @@ def read_dataset(
         max_videos=max_videos, window_size=window_size
     )
 
-    return train_dataset, val_dataset
+    test_video_ids = get_video_ids('test', splits_path)
+    test_videos_original = [x for x in original_video_dir_paths if get_file_name(x) in test_video_ids]
+    test_videos_tampered = [x for x in tampered_video_dir_paths if get_file_name(x) in test_video_ids]
+    test_dataset = ImagesDataset(
+        test_videos_original, test_videos_tampered, max_images_per_video=max_images_per_video, transform=transform,
+        max_videos=max_videos, window_size=window_size
+    )
+
+    return train_dataset, val_dataset, test_dataset
 
 
 def get_loader(dataset, batch_size, shuffle, num_workers):
