@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from data_loader import get_loader, read_dataset, CompositeDataset
 from model import FaceRecognitionCNN
-from utils import write_json, copy_file, summary, count_parameters
+from utils import write_json, copy_file, count_parameters
 
 
 def read_training_dataset(args, transform):
@@ -26,12 +26,17 @@ def read_training_dataset(args, transform):
         if ('original' in k or 'neural' in k) and 'c40' in k
     }
     print('Using training data: ')
-    print('\n'.join(datasets.keys()))
+    print('\n'.join(sorted(datasets.keys())))
 
     trains, vals, tests = [], [], []
     for data_dir_name, dataset in datasets.items():
         train, val, test = dataset
-        trains.append(train)
+        # repeat original data multiple times to balance out training data
+        compression = data_dir_name.split('_')[-1]
+        num_tampered_with_same_compression = len({x for x in datasets.keys() if compression in x}) - 1
+        count = 1 if 'original' not in data_dir_name else num_tampered_with_same_compression
+        for _ in range(count):
+            trains.append(train)
         vals.append(val)
         tests.append(test)
     return CompositeDataset(*trains), CompositeDataset(*vals), CompositeDataset(*tests)
