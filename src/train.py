@@ -10,7 +10,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from data_loader import get_loader, read_dataset, CompositeDataset
-from model import ResNet3d
+from model import Encoder2DConv3D
 from utils import write_json, copy_file, count_parameters
 
 
@@ -47,19 +47,19 @@ def run_train(args):
     writer = SummaryWriter(comment=args.comment)
 
     # Image preprocessing, normalization for the pretrained resnet
-    # transform = transforms.Compose([
-    #     transforms.Resize((160, 160)),
-    #     np.float32,
-    #     transforms.ToTensor(),
-    #     fixed_image_standardization
-    # ])
-
     transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((160, 160)),
+        np.float32,
         transforms.ToTensor(),
-        transforms.Normalize((0.485, 0.456, 0.406),
-                             (0.229, 0.224, 0.225))
+        fixed_image_standardization
     ])
+
+    # transform = transforms.Compose([
+    #     transforms.Resize((224, 224)),
+    #     transforms.ToTensor(),
+    #     transforms.Normalize((0.485, 0.456, 0.406),
+    #                          (0.229, 0.224, 0.225))
+    # ])
 
     train_dataset, val_dataset, test_dataset = read_training_dataset(args, transform)
 
@@ -78,7 +78,8 @@ def run_train(args):
     print('training on', device)
 
     # Build the models
-    model = ResNet3d().to(device)
+    assert args.encoder_model_path is not None
+    model = Encoder2DConv3D(args.encoder_model_path).to(device)
     if args.freeze_first_epoch:
         for m in model.resnet.parameters():
             m.requires_grad_(False)
@@ -251,7 +252,7 @@ def main():
     parser.add_argument('--window_size', type=int, default=7)
     parser.add_argument('--max_videos', type=int, default=1000)
     parser.add_argument('--splits_path', type=str, default='../dataset/splits/')
-    parser.add_argument('--encoder_model_path', type=str, default='models/Jan12_10-57-19_gpu-training/model.pt')
+    parser.add_argument('--encoder_model_path', type=str, default='../cloud_models/Feb01_15-24-05_DFFD_2DFaceRecognition_pretrained*/model.pt')
     parser.add_argument('--freeze_first_epoch', type=bool, default=False)
     parser.add_argument('--comment', type=str, default='')
     args = parser.parse_args()
