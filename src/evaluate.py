@@ -8,7 +8,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from data_loader import get_loader, read_dataset
-from model import FaceRecognitionCNN
+from model import CNN_LSTM
 
 
 def read_testing_dataset(args, transform):
@@ -43,7 +43,7 @@ def run_evaluate(args):
     print('evaluating on', device)
 
     # Build the models
-    model = FaceRecognitionCNN().to(device)
+    model = CNN_LSTM().to(device)
     state_dict = torch.load(args.model_path, map_location=device)
     model.load_state_dict(state_dict)
     model.eval()
