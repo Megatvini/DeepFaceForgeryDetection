@@ -216,10 +216,10 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, ep
         val_accuracy = (all_predictions == all_targets).sum().float().item() / all_targets.shape[0]
 
         total_target_tampered = all_targets.sum().float().item()
-        tampered_accuracy = (all_predictions * all_targets).sum() / total_target_tampered
+        tampered_accuracy = (all_predictions * all_targets).sum().item() / total_target_tampered
 
         total_target_pristine = (1 - all_targets).sum().float().item()
-        pristine_accuracy = (1 - (all_predictions | all_targets)).sum() / total_target_pristine
+        pristine_accuracy = (1 - (all_predictions | all_targets)).sum().item() / total_target_pristine
 
         tqdm.write(
             'Validation - Loss: {:.3f}, Acc: {:.3f}, Prs: {:.3f}, Tmp: {:.3f}'.format(
