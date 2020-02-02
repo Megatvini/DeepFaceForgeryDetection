@@ -10,7 +10,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from data_loader import get_loader, read_dataset, CompositeDataset
-from model import FaceRecognitionCNN
+from model import CNN_LSTM
 from utils import write_json, copy_file, count_parameters
 
 
@@ -78,10 +78,10 @@ def run_train(args):
     print('training on', device)
 
     # Build the models
-    model = FaceRecognitionCNN().to(device)
-    if args.freeze_first_epoch:
-        for m in model.resnet.parameters():
-            m.requires_grad_(False)
+    encoder_model_path = None # args.encoder_model_path
+    model = CNN_LSTM(
+        face_recognition_cnn_path=encoder_model_path, freeze_encoder=args.freeze_first_epoch, hidden_size=256
+    ).to(device)
 
     input_shape = next(iter(train_loader))[2].shape
     print('input shape', input_shape)
@@ -139,6 +139,11 @@ def run_train(args):
                     save_model_checkpoint(args, epoch, model, (val_acc, pr_acc, tmp_acc), writer.get_logdir())
                     best_val_acc = val_acc
 
+                if args.freeze_first_epoch and epoch == 0:
+                    for m in model.parameters():
+                        m.requires_grad_(True)
+                    tqdm.write('Fine tuning on')
+
         # validation step after full epoch
         val_acc, pr_acc, tmp_acc = print_validation_info(
             args, criterion, device, model, val_loader, writer, epoch, step
@@ -149,7 +154,7 @@ def run_train(args):
             best_val_acc = val_acc
 
         if args.freeze_first_epoch and epoch == 0:
-            for m in model.resnet.parameters():
+            for m in model.parameters():
                 m.requires_grad_(True)
             tqdm.write('Fine tuning on')
 
@@ -251,7 +256,7 @@ def main():
     parser.add_argument('--window_size', type=int, default=1)
     parser.add_argument('--max_videos', type=int, default=1000)
     parser.add_argument('--splits_path', type=str, default='../dataset/splits/')
-    parser.add_argument('--encoder_model_path', type=str, default='models/Jan12_10-57-19_gpu-training/model.pt')
+    # parser.add_argument('--encoder_model_path', type=str)
     parser.add_argument('--freeze_first_epoch', type=bool, default=False)
     parser.add_argument('--comment', type=str, default='')
     args = parser.parse_args()

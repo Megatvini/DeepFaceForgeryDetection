@@ -16,17 +16,19 @@ class NNLambda(nn.Module):
 
 
 class CNN_LSTM(nn.Module):
-    def __init__(self, face_recognition_cnn_path, hidden_size=64):
+    def __init__(self, face_recognition_cnn_path=None, hidden_size=64, freeze_encoder=False):
         super(CNN_LSTM, self).__init__()
         image_encoding_size = 64
 
         face_cnn = FaceRecognitionCNN()
-        state_dict = torch.load(face_recognition_cnn_path, map_location='cpu')
-        face_cnn.load_state_dict(state_dict)
+        if face_recognition_cnn_path is not None:
+            state_dict = torch.load(face_recognition_cnn_path, map_location='cpu')
+            face_cnn.load_state_dict(state_dict)
         face_cnn = nn.Sequential(*list(face_cnn.resnet.children()))[:-12]
 
-        for p in face_cnn.parameters():
-            p.requires_grad_(False)
+        if freeze_encoder:
+            for p in face_cnn.parameters():
+                p.requires_grad_(False)
 
         self.cnn_encoder = nn.Sequential(
             face_cnn,
