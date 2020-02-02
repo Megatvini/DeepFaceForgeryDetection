@@ -58,7 +58,7 @@ class ImagesDataset(Dataset):
         mid_video_id, mid_frame_id, mid_image, target = data[len(data)//2]
         images = [x[2] if x[0] == mid_video_id else mid_image for x in data]
         if self.window_size > 1:
-            return tensor(mid_video_id), tensor(mid_frame_id), torch.stack(images).permute(1, 0, 2, 3), target
+            return mid_video_id, mid_frame_id, torch.stack(images).permute(1, 0, 2, 3), target
         else:
             image_tensor = images[0]
             return mid_video_id, mid_frame_id, image_tensor, target
