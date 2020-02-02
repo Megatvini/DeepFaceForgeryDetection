@@ -10,7 +10,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from data_loader import get_loader, read_dataset
-from model import Encoder2DConv3D
+from model import MajorityVoteModel
 
 
 def read_testing_dataset(args, transform):
@@ -45,9 +45,7 @@ def run_evaluate(args):
     print('evaluating on', device)
 
     # Build the models
-    model = Encoder2DConv3D().to(device)
-    state_dict = torch.load(args.model_path, map_location=device)
-    model.load_state_dict(state_dict)
+    model = MajorityVoteModel(args.model_path).to(device)
     model.eval()
 
     for test_dataset_name, dt in full_dataset.items():
