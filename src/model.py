@@ -3,8 +3,6 @@ import torchvision
 from facenet_pytorch import InceptionResnetV1
 from torch import nn
 
-import resnet3d
-
 
 class NNLambda(nn.Module):
     def __init__(self, fn) -> None:
@@ -69,7 +67,12 @@ class CNN_LSTM(nn.Module):
 class ResNet3d(nn.Module):
     def __init__(self):
         super(ResNet3d, self).__init__()
-        self.model = resnet3d.resnet10(num_classes=1)
+        self.model = nn.Sequential(
+            torchvision.models.video.r3d_18(pretrained=True),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(400, 1)
+        )
 
     def forward(self, images):
         return self.model(images).squeeze()
@@ -175,5 +178,4 @@ class MajorityVoteModel(nn.Module):
         out = self.cnn_encoder(images)
         out = out.reshape(batch_size, depth)
         out = ((out > 0.0).sum(axis=1) > depth // 2).float()
-        # out = out[:, depth//2]
         return out
