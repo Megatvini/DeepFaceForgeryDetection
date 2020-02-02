@@ -40,7 +40,7 @@ def run_evaluate(args):
 
     # Device configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print('training on', device)
+    print('evaluating on', device)
 
     # Build the models
     model = FaceRecognitionCNN().to(device)
@@ -49,8 +49,9 @@ def run_evaluate(args):
     model.eval()
 
     for test_dataset_name, dt in full_dataset.items():
-        _, _, test_dataset = dt
-        evaluate(args, device, model, test_dataset, test_dataset_name)
+        if 'c40' in test_dataset_name and ('original' in test_dataset_name or 'neural' in test_dataset_name):
+            _, _, test_dataset = dt
+            evaluate(args, device, model, test_dataset, test_dataset_name)
 
 
 def evaluate(args, device, model, test_dataset, test_dataset_name):
