@@ -10,7 +10,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from data_loader import get_loader, read_dataset, CompositeDataset
-from model import FaceRecognitionCNN
+from model import ResNet2d
 from utils import write_json, copy_file, count_parameters
 
 
@@ -47,19 +47,19 @@ def run_train(args):
     writer = SummaryWriter(comment=args.comment)
 
     # Image preprocessing, normalization for the pretrained resnet
-    transform = transforms.Compose([
-        transforms.Resize((160, 160)),
-        np.float32,
-        transforms.ToTensor(),
-        fixed_image_standardization
-    ])
-
     # transform = transforms.Compose([
-    #     transforms.Resize((224, 224)),
+    #     transforms.Resize((160, 160)),
+    #     np.float32,
     #     transforms.ToTensor(),
-    #     transforms.Normalize((0.485, 0.456, 0.406),
-    #                          (0.229, 0.224, 0.225))
+    #     fixed_image_standardization
     # ])
+
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.485, 0.456, 0.406),
+                             (0.229, 0.224, 0.225))
+    ])
 
     train_dataset, val_dataset, test_dataset = read_training_dataset(args, transform)
 
@@ -78,7 +78,7 @@ def run_train(args):
     print('training on', device)
 
     # Build the models
-    model = FaceRecognitionCNN().to(device)
+    model = ResNet2d().to(device)
     if args.freeze_first_epoch:
         for m in model.resnet.parameters():
             m.requires_grad_(False)
