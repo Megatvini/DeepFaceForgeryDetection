@@ -81,7 +81,7 @@ def run_train(args):
     assert args.encoder_model_path is not None
     model = Encoder2DConv3D(args.encoder_model_path).to(device)
     if args.freeze_first_epoch:
-        for m in model.resnet.parameters():
+        for m in model.encoder2d.parameters():
             m.requires_grad_(False)
 
     input_shape = next(iter(train_loader))[2].shape
@@ -139,6 +139,10 @@ def run_train(args):
                 if val_acc > best_val_acc:
                     save_model_checkpoint(args, epoch, model, (val_acc, pr_acc, tmp_acc), writer.get_logdir())
                     best_val_acc = val_acc
+                if args.freeze_first_epoch and epoch == 0:
+                    for m in model.encoder2d.parameters():
+                        m.requires_grad_(True)
+                    tqdm.write('Fine tuning on')
 
         # validation step after full epoch
         val_acc, pr_acc, tmp_acc = print_validation_info(
@@ -150,7 +154,7 @@ def run_train(args):
             best_val_acc = val_acc
 
         if args.freeze_first_epoch and epoch == 0:
-            for m in model.resnet.parameters():
+            for m in model.encoder2d.parameters():
                 m.requires_grad_(True)
             tqdm.write('Fine tuning on')
 
