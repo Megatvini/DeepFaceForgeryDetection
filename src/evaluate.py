@@ -1,12 +1,16 @@
 import argparse
 
+import argparse
+
+import numpy as np
 import torch
 import torch.nn as nn
+from facenet_pytorch import fixed_image_standardization
 from torchvision import transforms
 from tqdm import tqdm
 
 from data_loader import get_loader, read_dataset
-from model import ResNet3d
+from model import Encoder2DConv3D
 
 
 def read_testing_dataset(args, transform):
@@ -20,19 +24,19 @@ def read_testing_dataset(args, transform):
 
 def run_evaluate(args):
     # Image preprocessing, normalization for the pretrained resnet
-    # transform = transforms.Compose([
-    #     transforms.Resize((160, 160)),
-    #     np.float32,
-    #     transforms.ToTensor(),
-    #     fixed_image_standardization
-    # ])
-
     transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((160, 160)),
+        np.float32,
         transforms.ToTensor(),
-        transforms.Normalize((0.485, 0.456, 0.406),
-                             (0.229, 0.224, 0.225))
+        fixed_image_standardization
     ])
+
+    # transform = transforms.Compose([
+    #     transforms.Resize((224, 224)),
+    #     transforms.ToTensor(),
+    #     transforms.Normalize((0.485, 0.456, 0.406),
+    #                          (0.229, 0.224, 0.225))
+    # ])
 
     full_dataset = read_testing_dataset(args, transform)
 
@@ -41,7 +45,7 @@ def run_evaluate(args):
     print('evaluating on', device)
 
     # Build the models
-    model = ResNet3d().to(device)
+    model = Encoder2DConv3D().to(device)
     state_dict = torch.load(args.model_path, map_location=device)
     model.load_state_dict(state_dict)
     model.eval()
