@@ -129,11 +129,11 @@ def read_dataset(
     return data_sets
 
 
-def get_loader(dataset, batch_size, shuffle, num_workers):
+def get_loader(dataset, batch_size, shuffle, num_workers, drop_last=True):
     data_loader = torch.utils.data.DataLoader(dataset=dataset,
                                               batch_size=batch_size,
                                               shuffle=shuffle,
                                               num_workers=num_workers,
-                                              drop_last=True,
+                                              drop_last=drop_last,
                                               pin_memory=True)
     return data_loader

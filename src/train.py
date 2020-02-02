@@ -132,16 +132,20 @@ def run_train(args):
                 print_training_info(batch_accuracy, loss, step, writer)
 
             if (i + 1) % args.val_step == 0:
-                val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, epoch, step)
+                val_acc, pr_acc, tmp_acc = print_validation_info(
+                    args, criterion, device, model, val_loader, writer, epoch, step
+                )
                 if val_acc > best_val_acc:
-                    save_model_checkpoint(args, epoch, model, val_acc, writer.get_logdir())
+                    save_model_checkpoint(args, epoch, model, (val_acc, pr_acc, tmp_acc), writer.get_logdir())
                     best_val_acc = val_acc
 
         # validation step after full epoch
-        val_acc = print_validation_info(args, criterion, device, model, val_loader, writer, epoch, step)
+        val_acc, pr_acc, tmp_acc = print_validation_info(
+            args, criterion, device, model, val_loader, writer, epoch, step
+        )
         lr_scheduler.step(val_acc)
         if val_acc > best_val_acc:
-            save_model_checkpoint(args, epoch, model, val_acc, writer.get_logdir())
+            save_model_checkpoint(args, epoch, model, (val_acc, pr_acc, tmp_acc), writer.get_logdir())
             best_val_acc = val_acc
 
         if args.freeze_first_epoch and epoch == 0:
@@ -226,7 +230,7 @@ def print_validation_info(args, criterion, device, model, val_loader, writer, ep
         writer.add_scalar('validation acc', val_accuracy, step)
         writer.add_scalar('pristine acc', pristine_accuracy, step)
         writer.add_scalar('tampered acc', tampered_accuracy, step)
-    return val_accuracy
+    return val_accuracy, pristine_accuracy, tampered_accuracy
 
 
 def main():
