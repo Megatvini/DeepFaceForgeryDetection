@@ -18,7 +18,7 @@ They automatically use gpu when available, but will also work on cpu, but very s
 ### Single frame model
 We got the best single-frame classification accuracy using a version of [Inception Resnet V1 model](src/model.py#L109) pretrained on VGGFace2 face recognition dataset.
 
-![Inception Resnet V1 diagram](diagrams/inception_resnet_v1.png|width=100px)
+![Inception Resnet V1 diagram](diagrams/inception_resnet_v1.png)
 
 ### FaceForensics Benchmark
 By training this model on all the data mentioned above we got state of the art results on [faceforenics benchmark](http://kaldir.vc.in.tum.de/faceforensics_benchmark/) 
@@ -30,8 +30,8 @@ We also evaluated how performance improves when incorporating temporal data. The
 We used 2 different models for such an approach 3D convolutional and Bi-LSTM. 
 
 #### 3D convolutional model
-![3D convolutional model diagram](diagrams/3dconv.png)
+![3D convolutional model diagram](diagrams/3dconv.png)  
 Temporal feature locality assumption that 3D convolutional model has, seems reasonable in this case, but it is very slow to train for large window sizes.
 
 #### LSTM with 2D CNN encoder
-![LSTM with 2D CNN encoder diagram](diagrams/CNN_LSTM.png)
+![LSTM with 2D CNN encoder diagram](diagrams/CNN_LSTM.png)  
