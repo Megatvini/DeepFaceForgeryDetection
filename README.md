@@ -1,5 +1,5 @@
 ## DeepFaceForgery Detection
-This repository contains code for deep face forgery detection in video frames. This is a student project from [Advanced Deep Learning for Computer Vision](https://dvl.in.tum.de/teaching/adl4cv-ws18/) course at [TUM](https://www.tum.de/).
+This repository contains code for deep face forgery detection in video frames. This is a student project from [Advanced Deep Learning for Computer Vision](https://dvl.in.tum.de/teaching/adl4cv-ws18/) course at [TUM](https://www.tum.de/). Publication available on [Arxiv](https://arxiv.org/abs/2004.11804) 
 
 ### FaceForensics Benchmark
 Using transfer learning we were able to achieve a new state of the art performance on [faceforenics benchmark](http://kaldir.vc.in.tum.de/faceforensics_benchmark/) 
