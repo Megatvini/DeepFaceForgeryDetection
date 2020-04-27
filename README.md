@@ -34,4 +34,16 @@ We used 2 different models for such an approach 3D convolutional and Bi-LSTM.
 Temporal feature locality assumption that 3D convolutional model has, seems reasonable in this case, but it is very slow to train for large window sizes.
 
 #### LSTM with 2D CNN encoder
-![LSTM with 2D CNN encoder diagram](diagrams/CNN_LSTM.png)  
+![LSTM with 2D CNN encoder diagram](diagrams/CNN_LSTM.png)     
+
+## Citation
+```
+@misc{dogonadze2020deep,
+    title={Deep Face Forgery Detection},
+    author={Nika Dogonadze and Jana Obernosterer and Ji Hou},
+    year={2020},
+    eprint={2004.11804},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
+}
+```
