@@ -47,3 +47,6 @@ Temporal feature locality assumption that 3D convolutional model has, seems reas
     primaryClass={cs.CV}
 }
 ```
+
+### Model Weights
+Various model weights are available here - [models](https://drive.google.com/file/d/18-ki7vY0Yt4fzq-5A5A5w11kxy9xxQaW/view?usp=sharing)
