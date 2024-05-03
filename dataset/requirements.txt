@@ -1,4 +1,4 @@
-tqdm==4.46.0
+tqdm==4.66.3
 opencv-python==4.2.0.34
 facenet-pytorch==2.2.9
 mmcv==0.5.7
